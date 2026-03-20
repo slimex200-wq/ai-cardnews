@@ -22,7 +22,7 @@ def generate_gallery(output_dir, docs_dir):
         for card in cards:
             rel_path = f"../output/{date_dir.name}/{card.name}"
             cards_html += f"""
-            <a href="{rel_path}" download class="card-link">
+            <a href="{rel_path}" download="{card.name}" class="card-link" data-filename="{card.name}">
                 <img src="{rel_path}" alt="{card.name}" class="card-img">
             </a>"""
 
@@ -93,6 +93,26 @@ def generate_gallery(output_dir, docs_dir):
     <h1>AI Card News</h1>
     <p class="subtitle">매일 자동 생성되는 AI 뉴스 카드</p>
     {sections_html}
+    <script>
+    document.querySelectorAll('.card-link').forEach(link => {{
+        link.addEventListener('click', async (e) => {{
+            e.preventDefault();
+            const url = link.href;
+            const filename = link.dataset.filename;
+            try {{
+                const res = await fetch(url);
+                const blob = await res.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(a.href);
+            }} catch {{
+                window.open(url);
+            }}
+        }});
+    }});
+    </script>
 </body>
 </html>"""
 
