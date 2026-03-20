@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import date
 import anthropic
 from config import ANTHROPIC_API_KEY, MODEL
 
@@ -30,7 +31,7 @@ def build_prompt(articles, select_count=None):
 JSON 형식으로 응답해주세요:
 {{
   "cover_title": "AI Weekly",
-  "cover_date": "YYYY-MM-DD",
+  "cover_date": "{date.today().isoformat()}",
   "cards": [
     {{
       "number": 1,

@@ -32,7 +32,7 @@ COMMON_CSS = get_font_css() + """
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
     width: 1080px; height: 1080px;
-    font-family: 'Pretendard', sans-serif;
+    font-family: 'Pretendard', 'Noto Sans CJK KR', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
     overflow: hidden;
     -webkit-font-smoothing: antialiased;
 }
