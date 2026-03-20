@@ -4,10 +4,17 @@ from datetime import date
 
 # RSS 소스
 RSS_FEEDS = [
+    # 영문
     "https://techcrunch.com/category/artificial-intelligence/feed/",
     "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
     "https://www.technologyreview.com/feed/",
     "https://feeds.arstechnica.com/arstechnica/technology-lab",
+    "https://openai.com/blog/rss.xml",
+    "https://blog.google/technology/ai/rss/",
+    "https://huggingface.co/blog/feed.xml",
+    # 한국어
+    "https://www.aitimes.com/rss/allArticle.xml",
+    "https://zdnet.co.kr/rss/ai_news.xml",
 ]
 
 # Claude API
@@ -31,6 +38,19 @@ FONT_PATH_REGULAR = "C:/Windows/Fonts/malgun.ttf"
 # 출력
 DEFAULT_OUTPUT = Path.home() / "Desktop" / "ai-cardnews"
 DEFAULT_COUNT = 4
+
+# AI 키워드 필터링
+AI_KEYWORDS = [
+    # 영문
+    "ai", "artificial intelligence", "machine learning", "deep learning",
+    "neural network", "llm", "large language model", "gpt", "claude",
+    "gemini", "chatbot", "generative ai", "transformer", "diffusion",
+    "reinforcement learning", "computer vision", "nlp",
+    "natural language processing", "openai", "anthropic", "hugging face",
+    # 한국어
+    "인공지능", "머신러닝", "딥러닝", "생성형", "대규모 언어 모델",
+    "챗봇", "자연어 처리", "컴퓨터 비전", "강화학습",
+]
 
 def get_output_dir(custom_path=None):
     base = Path(custom_path) if custom_path else DEFAULT_OUTPUT
