@@ -1,13 +1,34 @@
+import shutil
+import os
 from html2image import Html2Image
 from pathlib import Path
 from config import CARD_WIDTH, CARD_HEIGHT
+from font_css import get_font_css
 
-hti = Html2Image(
-    browser_executable=r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-    size=(CARD_WIDTH, CARD_HEIGHT),
-)
 
-COMMON_CSS = """
+def _find_chrome():
+    """크로스플랫폼 Chrome 경로 탐색"""
+    env_path = os.environ.get("CHROME_BIN")
+    if env_path:
+        return env_path
+    win_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+    if Path(win_path).exists():
+        return win_path
+    for name in ["google-chrome", "google-chrome-stable", "chromium-browser", "chromium"]:
+        found = shutil.which(name)
+        if found:
+            return found
+    return None
+
+
+chrome_path = _find_chrome()
+hti_kwargs = {"size": (CARD_WIDTH, CARD_HEIGHT)}
+if chrome_path:
+    hti_kwargs["browser_executable"] = chrome_path
+
+hti = Html2Image(**hti_kwargs)
+
+COMMON_CSS = get_font_css() + """
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
     width: 1080px; height: 1080px;
