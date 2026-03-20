@@ -2,13 +2,14 @@ import argparse
 import sys
 from config import DEFAULT_COUNT, get_output_dir, ANTHROPIC_API_KEY
 from rss_collector import collect_news
+from news_filter import filter_by_keywords
 from ai_writer import generate_card_content
 from card_renderer import render_cover, render_news_card, render_closing
 
 
 def main():
     parser = argparse.ArgumentParser(description="AI 카드뉴스 생성기")
-    parser.add_argument("--count", type=int, default=DEFAULT_COUNT, help="수집할 뉴스 개수 (기본: 4)")
+    parser.add_argument("--count", type=int, default=DEFAULT_COUNT, help="최종 카드 개수 (기본: 4)")
     parser.add_argument("--output", type=str, default=None, help="출력 경로")
     args = parser.parse_args()
 
@@ -17,39 +18,46 @@ def main():
         sys.exit(1)
 
     # 1. RSS 뉴스 수집
-    print(f"[1/3] AI 뉴스 수집 중... (최대 {args.count}개)")
-    articles = collect_news(max_count=args.count)
+    print("[1/4] AI 뉴스 수집 중...")
+    articles = collect_news(max_count=50)
     if not articles:
         print("[에러] 뉴스를 수집하지 못했습니다.")
         sys.exit(1)
-    print(f"  → {len(articles)}개 기사 수집 완료")
+    print(f"  → {len(articles)}개 기사 수집")
 
-    # 2. Claude API로 카드 문구 생성
-    print("[2/3] 카드 문구 생성 중... (Claude API)")
-    content = generate_card_content(articles)
+    # 2. 키워드 필터링
+    print("[2/4] AI 관련 기사 필터링 중...")
+    filtered = filter_by_keywords(articles, max_count=10)
+    if not filtered:
+        print("  → 키워드 매칭 없음, 최신순으로 대체")
+        filtered = articles[:10]
+    print(f"  → {len(filtered)}개 기사 통과")
+
+    # 3. Claude API로 선별 + 카드 문구 생성
+    print("[3/4] 카드 문구 생성 중... (Claude API)")
+    content = generate_card_content(filtered, select_count=args.count)
     print(f"  → {len(content['cards'])}개 카드 문구 생성 완료")
 
-    # 3. 이미지 생성
-    print("[3/3] 카드 이미지 생성 중...")
+    # 4. 이미지 생성
+    print("[4/4] 카드 이미지 생성 중...")
     output_dir = get_output_dir(args.output)
     generated = []
 
-    # 표지
-    path = render_cover(content["cover_title"], content["cover_date"], output_dir)
-    generated.append(path)
-    print(f"  → 표지: {path}")
+    total_cards = len(content["cards"])
 
-    # 뉴스 카드
+    path = render_cover(content["cover_title"], content["cover_date"], output_dir, total_cards)
+    generated.append(path)
+    print(f"  → 표지: card-01.png")
+
     for i, card in enumerate(content["cards"], 2):
-        path = render_news_card(card, i, output_dir)
+        path = render_news_card(card, i, output_dir, total_cards)
         generated.append(path)
-        print(f"  → 카드 {i}: {path}")
+        print(f"  → 카드 {i}: card-{i:02d}.png")
 
-    # 마무리
-    closing_num = len(content["cards"]) + 2
-    path = render_closing(content["closing_message"], closing_num, output_dir)
+    closing_num = total_cards + 2
+    path = render_closing(content["closing_message"], closing_num, output_dir, total_cards)
     generated.append(path)
-    print(f"  → 마무리: {path}")
+    print(f"  → 마무리: card-{closing_num:02d}.png")
 
     print(f"\n완료! {len(generated)}장의 카드뉴스가 생성되었습니다.")
     print(f"저장 위치: {output_dir}")
