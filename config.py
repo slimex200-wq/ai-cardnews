@@ -52,6 +52,9 @@ AI_KEYWORDS = [
     "챗봇", "자연어 처리", "컴퓨터 비전", "강화학습",
 ]
 
+# Unsplash API (썸네일 폴백)
+UNSPLASH_ACCESS_KEY = os.environ.get("UNSPLASH_ACCESS_KEY", "")
+
 def get_output_dir(custom_path=None):
     base = Path(custom_path) if custom_path else DEFAULT_OUTPUT
     today = date.today().isoformat()
