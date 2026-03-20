@@ -11,6 +11,7 @@ def build_prompt(articles, select_count=None):
         articles_text += f"Title: {a['title']}\n"
         articles_text += f"Summary: {a['summary']}\n"
         articles_text += f"Source: {a['source']}\n"
+        articles_text += f"Link: {a.get('link', '')}\n"
 
     selection_instruction = ""
     if select_count and len(articles) > select_count:
@@ -20,13 +21,25 @@ def build_prompt(articles, select_count=None):
 선별된 {select_count}개 기사만 카드뉴스로 변환해주세요.
 """
 
-    return f"""{selection_instruction}아래 AI 관련 뉴스 기사들을 한국어 인스타그램 카드뉴스용 문구로 변환해주세요.
+    return f"""{selection_instruction}당신은 AI/테크 업계 시니어 에디터입니다. 아래 기사들을 한국어 인스타그램 카드뉴스로 변환해주세요.
 
-각 기사에 대해 다음을 생성해주세요:
-- title: 카드 제목 (15자 이내, 한국어)
-- subtitle: 부제 (20자 이내, 한국어)
-- points: 핵심 포인트 2~3개 (각 30자 이내, 한국어)
+## 톤 & 스타일
+- 업계 전문가가 동료에게 브리핑하는 느낌
+- 반드시 구체적 수치, 금액, 날짜, 인물명을 포함할 것
+- "폭발적 증가", "절호의 기회" 같은 빈 수식어 금지
+- 마지막 포인트는 반드시 "왜 중요한지" 분석 (So What)으로 마무리
+
+## 각 기사에 대해:
+- title: 임팩트 있는 제목 (15자 이내, 한국어)
+- subtitle: 핵심 맥락 한 줄 (25자 이내, 한국어)
+- points: 핵심 포인트 5개 (각 35자 이내, 한국어)
+  - 1~3번째: 구체적 팩트 (수치, 인물, 날짜 포함)
+  - 4번째: 업계 영향 또는 파급 효과
+  - 5번째: "왜 주목해야 하는가" 에디터 관점 분석
+- insight: 에디터 한줄평 (30자 이내, 독자에게 시사점)
 - source: 출처명
+- link: 원문 URL (기사의 Link 필드 그대로 사용)
+- keywords: 이 기사의 핵심 키워드 1~2개 (표지에 사용)
 
 JSON 형식으로 응답해주세요:
 {{
@@ -37,8 +50,11 @@ JSON 형식으로 응답해주세요:
       "number": 1,
       "title": "...",
       "subtitle": "...",
-      "points": ["...", "..."],
-      "source": "..."
+      "points": ["팩트1", "팩트2", "팩트3", "영향", "So What"],
+      "insight": "에디터 한줄평",
+      "source": "...",
+      "link": "https://...",
+      "keywords": ["키워드1"]
     }}
   ],
   "closing_message": "읽어주셔서 감사합니다"

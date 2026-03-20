@@ -45,11 +45,14 @@ def main():
     content = generate_card_content(filtered, select_count=args.count)
     print(f"  → {len(content['cards'])}개 카드 문구 생성 완료")
 
-    # Claude가 선별한 카드에 썸네일 매칭 (number 기반 → filtered 인덱스)
+    # Claude가 선별한 카드에 썸네일 + 링크 매칭 (number 기반 → filtered 인덱스)
     for card in content["cards"]:
         idx = card.get("number", 0) - 1
-        if 0 <= idx < len(filtered) and filtered[idx].get("thumbnail_b64"):
-            card["thumbnail_b64"] = filtered[idx]["thumbnail_b64"]
+        if 0 <= idx < len(filtered):
+            if filtered[idx].get("thumbnail_b64"):
+                card["thumbnail_b64"] = filtered[idx]["thumbnail_b64"]
+            if not card.get("link") and filtered[idx].get("link"):
+                card["link"] = filtered[idx]["link"]
 
     # 5. 이미지 생성
     print("[5/5] 카드 이미지 생성 중...")
@@ -58,7 +61,20 @@ def main():
 
     total_cards = len(content["cards"])
 
-    path = render_cover(content["cover_title"], content["cover_date"], output_dir, total_cards)
+    # 표지용 키워드 수집
+    all_keywords = []
+    for card in content["cards"]:
+        all_keywords.extend(card.get("keywords", []))
+    # 중복 제거, 최대 4개
+    seen = set()
+    unique_keywords = []
+    for kw in all_keywords:
+        if kw not in seen:
+            seen.add(kw)
+            unique_keywords.append(kw)
+    cover_keywords = unique_keywords[:4]
+
+    path = render_cover(content["cover_title"], content["cover_date"], output_dir, total_cards, keywords=cover_keywords)
     generated.append(path)
     print(f"  → 표지: card-01.png")
 

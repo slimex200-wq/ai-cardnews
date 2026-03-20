@@ -46,7 +46,7 @@ def _render(html, css, filename, output_dir):
     return str(output_dir / filename)
 
 
-def render_cover(title, date_str, output_dir, total_cards=4):
+def render_cover(title, date_str, output_dir, total_cards=4, keywords=None):
     css = COMMON_CSS + """
 body {
     background: #0a0a0a;
@@ -97,7 +97,22 @@ body {
     display: flex; align-items: center; justify-content: center;
     font-size: 18px; color: #888;
 }
+.keywords {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    margin-top: 32px;
+}
+.keyword {
+    font-size: 20px; color: #999;
+    padding: 8px 18px;
+    border: 1px solid #333;
+    border-radius: 20px;
+}
 """
+    keywords_html = ""
+    if keywords:
+        tags = "".join(f'<span class="keyword">#{k}</span>' for k in keywords)
+        keywords_html = f'<div class="keywords">{tags}</div>'
+
     html = f"""
 <div class="glow"></div>
 <div class="border"></div>
@@ -105,6 +120,7 @@ body {
 <div class="title">이번 주<br>AI 뉴스</div>
 <div class="sep"></div>
 <div class="date">{date_str}</div>
+{keywords_html}
 <div class="bottom">
     <span class="bottom-text">{total_cards}편의 뉴스</span>
     <div class="arrow-circle">↓</div>
@@ -114,11 +130,15 @@ body {
 
 
 def render_news_card(card_data, card_number, output_dir, total_cards=4):
+    import re as _re
+
     num = card_data.get("number", card_number - 1)
     source = card_data.get("source", "")
     title = card_data.get("title", "")
     subtitle = card_data.get("subtitle", "")
     points = card_data.get("points", [])
+    insight = card_data.get("insight", "")
+    link = card_data.get("link", "")
 
     thumbnail_b64 = card_data.get("thumbnail_b64")
     thumbnail_html = ""
@@ -133,8 +153,23 @@ def render_news_card(card_data, card_number, output_dir, total_cards=4):
             <span>{p}</span>
         </div>"""
 
+    # 에디터 인사이트
+    insight_html = ""
+    if insight:
+        insight_html = f"""
+        <div class="insight">
+            <span class="insight-label">INSIGHT</span>
+            <span class="insight-text">{insight}</span>
+        </div>"""
+
+    # 원문 링크 (도메인만 표시)
+    link_html = ""
+    if link:
+        domain = _re.sub(r'^https?://(www\.)?', '', link).split('/')[0]
+        link_html = f'<div class="source-link">🔗 {domain}</div>'
+
     # page dots
-    total_pages = total_cards + 2  # cover + news cards + closing
+    total_pages = total_cards + 2
     dots_html = ""
     for i in range(total_pages):
         if i == card_number - 1:
@@ -146,7 +181,7 @@ def render_news_card(card_data, card_number, output_dir, total_cards=4):
 body {
     background: #0a0a0a;
     color: #fff;
-    padding: 100px;
+    padding: 80px;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -162,58 +197,81 @@ body {
     background: linear-gradient(90deg, transparent, #444, transparent);
 }
 .header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 60px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 36px;
+}
+.header-left {
+    display: flex; flex-direction: column; gap: 4px;
 }
 .header-num {
-    font-size: 22px; color: #888;
+    font-size: 20px; color: #888;
     font-weight: 600; letter-spacing: 2px;
 }
 .header-source {
-    font-size: 22px; color: #666; font-weight: 500;
-}
-.header-right {
-    display: flex; align-items: center; gap: 16px;
+    font-size: 20px; color: #666; font-weight: 500;
 }
 .thumbnail {
-    width: 120px; height: 120px;
-    border-radius: 12px;
+    width: 180px; height: 180px;
+    border-radius: 16px;
     object-fit: cover;
 }
 .title {
-    font-size: 68px; font-weight: 900;
+    font-size: 62px; font-weight: 900;
     line-height: 1.15; letter-spacing: -2px;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
     word-break: keep-all;
     overflow-wrap: break-word;
 }
 .subtitle {
-    font-size: 30px; color: #777;
-    margin-bottom: 40px; font-weight: 400;
+    font-size: 26px; color: #777;
+    margin-bottom: 28px; font-weight: 400;
 }
 .sep {
     width: 100%; height: 1px;
-    background: #222; margin-bottom: 36px;
+    background: #222; margin-bottom: 24px;
 }
 .points {
     display: flex; flex-direction: column;
-    gap: 18px; flex: 1;
+    gap: 14px;
 }
 .point {
-    display: flex; align-items: center; gap: 16px;
+    display: flex; align-items: flex-start; gap: 14px;
 }
 .point .dot {
-    width: 7px; height: 7px; border-radius: 50%;
+    width: 6px; height: 6px; border-radius: 50%;
     background: #fff; flex-shrink: 0;
+    margin-top: 10px;
 }
 .point span {
-    color: #bbb; font-size: 28px;
+    color: #bbb; font-size: 25px; line-height: 1.4;
+}
+.insight {
+    margin-top: 20px; padding: 16px 20px;
+    background: #141414;
+    border-left: 3px solid #444;
+    border-radius: 0 8px 8px 0;
+    display: flex; align-items: center; gap: 12px;
+}
+.insight-label {
+    font-size: 14px; font-weight: 700;
+    color: #666; letter-spacing: 2px;
+    flex-shrink: 0;
+}
+.insight-text {
+    font-size: 22px; color: #999;
+    font-style: italic;
+}
+.source-link {
+    font-size: 18px; color: #555;
+    margin-top: 12px;
+}
+.footer {
+    margin-top: auto;
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 16px;
 }
 .page-dots {
     display: flex; gap: 8px;
-    justify-content: center;
-    padding-top: 32px;
-    margin-top: auto;
 }
 .dot-active {
     width: 22px; height: 8px;
@@ -228,17 +286,21 @@ body {
 <div class="border"></div>
 <div class="top-line"></div>
 <div class="header">
-    <span class="header-num">{num:02d} / {total_cards:02d}</span>
-    <div class="header-right">
+    <div class="header-left">
+        <span class="header-num">{num:02d} / {total_cards:02d}</span>
         <span class="header-source">{source}</span>
-        {thumbnail_html}
     </div>
+    {thumbnail_html}
 </div>
 <div class="title">{title}</div>
 <div class="subtitle">{subtitle}</div>
 <div class="sep"></div>
 <div class="points">{points_html}</div>
-<div class="page-dots">{dots_html}</div>
+{insight_html}
+<div class="footer">
+    {link_html}
+    <div class="page-dots">{dots_html}</div>
+</div>
 """
     return _render(html, css, f"card-{card_number:02d}.png", output_dir)
 
@@ -278,6 +340,23 @@ body {
 }
 .brand {
     font-size: 24px; color: #444;
+    margin-bottom: 48px;
+}
+.cta {
+    display: flex; flex-direction: column;
+    gap: 14px; align-items: center;
+}
+.cta-item {
+    font-size: 22px; color: #666;
+    letter-spacing: 1px;
+}
+.cta-highlight {
+    font-size: 24px; color: #999;
+    font-weight: 600;
+    padding: 12px 32px;
+    border: 1px solid #333;
+    border-radius: 28px;
+    margin-top: 8px;
 }
 """
     html = f"""
@@ -286,5 +365,9 @@ body {
 <div class="message">{message}</div>
 <div class="sep"></div>
 <div class="brand">AI Weekly</div>
+<div class="cta">
+    <span class="cta-item">매일 AI 뉴스를 카드로 받아보세요</span>
+    <span class="cta-highlight">팔로우 &amp; 저장</span>
+</div>
 """
     return _render(html, css, f"card-{card_number:02d}.png", output_dir)

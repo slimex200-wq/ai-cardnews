@@ -72,7 +72,7 @@ def generate_gallery(output_dir, docs_dir):
         }}
         .card-grid {{
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 16px;
         }}
         .card-link {{
@@ -90,7 +90,7 @@ def generate_gallery(output_dir, docs_dir):
         }}
         @media (max-width: 768px) {{
             .card-grid {{
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: 1fr;
             }}
             h1 {{ font-size: 32px; }}
         }}
