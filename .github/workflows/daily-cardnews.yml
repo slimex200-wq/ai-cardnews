@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pages: write
 
 jobs:
   generate:
@@ -36,13 +37,17 @@ jobs:
       - name: Generate card news
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
         run: python cardnews.py --output output/
+
+      - name: Generate gallery page
+        run: python -c "from page_generator import generate_gallery; generate_gallery('output', 'docs')"
 
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add output/
+          git add output/ docs/
           DATE=$(date +%Y-%m-%d)
           git diff --staged --quiet || git commit -m "chore: $DATE 카드뉴스 생성"
           git push
