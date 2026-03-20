@@ -102,9 +102,9 @@ body {
     margin-top: 32px;
 }
 .keyword {
-    font-size: 20px; color: #999;
+    font-size: 20px; color: #3B82F6;
     padding: 8px 18px;
-    border: 1px solid #333;
+    border: 1px solid #1E3A5F;
     border-radius: 20px;
 }
 """
@@ -140,10 +140,27 @@ def render_news_card(card_data, card_number, output_dir, total_cards=4):
     insight = card_data.get("insight", "")
     link = card_data.get("link", "")
 
+    # 썸네일 → 상단 배너
     thumbnail_b64 = card_data.get("thumbnail_b64")
-    thumbnail_html = ""
+    banner_html = ""
     if thumbnail_b64:
-        thumbnail_html = f'<img class="thumbnail" src="data:image/png;base64,{thumbnail_b64}">'
+        banner_html = f"""
+        <div class="banner">
+            <img src="data:image/png;base64,{thumbnail_b64}">
+            <div class="banner-overlay"></div>
+            <div class="banner-meta">
+                <span class="banner-num">{num:02d} / {total_cards:02d}</span>
+                <span class="banner-source">{source}</span>
+            </div>
+        </div>"""
+    else:
+        banner_html = f"""
+        <div class="banner banner-no-img">
+            <div class="banner-meta">
+                <span class="banner-num">{num:02d} / {total_cards:02d}</span>
+                <span class="banner-source">{source}</span>
+            </div>
+        </div>"""
 
     points_html = ""
     for p in points:
@@ -159,14 +176,14 @@ def render_news_card(card_data, card_number, output_dir, total_cards=4):
         insight_html = f"""
         <div class="insight">
             <span class="insight-label">INSIGHT</span>
-            <span class="insight-text">{insight}</span>
+            <span class="insight-text">「{insight}」</span>
         </div>"""
 
-    # 원문 링크 (도메인만 표시)
+    # 원문 링크
     link_html = ""
     if link:
-        domain = _re.sub(r'^https?://(www\.)?', '', link).split('/')[0]
-        link_html = f'<div class="source-link">🔗 {domain}</div>'
+        domain = _re.sub(r'^https?://(www\\.)?', '', link).split('/')[0]
+        link_html = f'<span class="source-link">🔗 {domain}</span>'
 
     # page dots
     total_pages = total_cards + 2
@@ -181,49 +198,48 @@ def render_news_card(card_data, card_number, output_dir, total_cards=4):
 body {
     background: #0a0a0a;
     color: #fff;
-    padding: 80px;
     position: relative;
-    display: flex;
-    flex-direction: column;
 }
-.border {
-    position: absolute; inset: 0;
-    border: 1px solid #2a2a2a;
-    pointer-events: none;
+.banner {
+    position: relative;
+    width: 100%; height: 240px;
+    flex-shrink: 0;
+    overflow: hidden;
 }
-.top-line {
-    position: absolute; top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, #444, transparent);
-}
-.header {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    margin-bottom: 36px;
-}
-.header-left {
-    display: flex; flex-direction: column; gap: 4px;
-}
-.header-num {
-    font-size: 20px; color: #888;
-    font-weight: 600; letter-spacing: 2px;
-}
-.header-source {
-    font-size: 20px; color: #666; font-weight: 500;
-}
-.thumbnail {
-    width: 180px; height: 180px;
-    border-radius: 16px;
+.banner img {
+    width: 100%; height: 100%;
     object-fit: cover;
 }
+.banner-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(10,10,10,0.1) 0%, rgba(10,10,10,0.85) 100%);
+}
+.banner-no-img {
+    background: linear-gradient(135deg, #111 0%, #0a0a0a 100%);
+}
+.banner-meta {
+    position: absolute; bottom: 24px; left: 72px;
+    display: flex; gap: 20px; align-items: center;
+}
+.banner-num {
+    font-size: 18px; color: rgba(255,255,255,0.7);
+    font-weight: 600; letter-spacing: 2px;
+}
+.banner-source {
+    font-size: 18px; color: rgba(255,255,255,0.5); font-weight: 500;
+}
+.content {
+    padding: 36px 72px 0;
+}
 .title {
-    font-size: 62px; font-weight: 900;
+    font-size: 58px; font-weight: 900;
     line-height: 1.15; letter-spacing: -2px;
     margin-bottom: 10px;
     word-break: keep-all;
     overflow-wrap: break-word;
 }
 .subtitle {
-    font-size: 26px; color: #777;
+    font-size: 24px; color: #888;
     margin-bottom: 28px; font-weight: 400;
 }
 .sep {
@@ -232,50 +248,49 @@ body {
 }
 .points {
     display: flex; flex-direction: column;
-    gap: 14px;
+    gap: 12px;
 }
 .point {
     display: flex; align-items: flex-start; gap: 14px;
 }
 .point .dot {
     width: 6px; height: 6px; border-radius: 50%;
-    background: #fff; flex-shrink: 0;
-    margin-top: 10px;
+    background: #3B82F6; flex-shrink: 0;
+    margin-top: 11px;
 }
 .point span {
-    color: #bbb; font-size: 25px; line-height: 1.4;
+    color: #ccc; font-size: 25px; line-height: 1.45;
 }
 .insight {
     margin-top: 20px; padding: 16px 20px;
-    background: #141414;
-    border-left: 3px solid #444;
+    background: #111;
+    border-left: 3px solid #3B82F6;
     border-radius: 0 8px 8px 0;
-    display: flex; align-items: center; gap: 12px;
+    display: flex; align-items: center; gap: 14px;
 }
 .insight-label {
-    font-size: 14px; font-weight: 700;
-    color: #666; letter-spacing: 2px;
+    font-size: 13px; font-weight: 700;
+    color: #3B82F6; letter-spacing: 2px;
     flex-shrink: 0;
 }
 .insight-text {
-    font-size: 22px; color: #999;
-    font-style: italic;
-}
-.source-link {
-    font-size: 18px; color: #555;
-    margin-top: 12px;
+    font-size: 21px; color: #aaa;
+    font-weight: 500;
 }
 .footer {
-    margin-top: auto;
+    position: fixed;
+    bottom: 32px; left: 72px; right: 72px;
     display: flex; justify-content: space-between; align-items: center;
-    padding-top: 16px;
+}
+.source-link {
+    font-size: 20px; color: #666;
 }
 .page-dots {
     display: flex; gap: 8px;
 }
 .dot-active {
     width: 22px; height: 8px;
-    border-radius: 4px; background: #fff;
+    border-radius: 4px; background: #3B82F6;
 }
 .dot-inactive {
     width: 8px; height: 8px;
@@ -283,20 +298,14 @@ body {
 }
 """
     html = f"""
-<div class="border"></div>
-<div class="top-line"></div>
-<div class="header">
-    <div class="header-left">
-        <span class="header-num">{num:02d} / {total_cards:02d}</span>
-        <span class="header-source">{source}</span>
-    </div>
-    {thumbnail_html}
+{banner_html}
+<div class="content">
+    <div class="title">{title}</div>
+    <div class="subtitle">{subtitle}</div>
+    <div class="sep"></div>
+    <div class="points">{points_html}</div>
+    {insight_html}
 </div>
-<div class="title">{title}</div>
-<div class="subtitle">{subtitle}</div>
-<div class="sep"></div>
-<div class="points">{points_html}</div>
-{insight_html}
 <div class="footer">
     {link_html}
     <div class="page-dots">{dots_html}</div>
@@ -351,12 +360,12 @@ body {
     letter-spacing: 1px;
 }
 .cta-highlight {
-    font-size: 24px; color: #999;
+    font-size: 24px; color: #3B82F6;
     font-weight: 600;
-    padding: 12px 32px;
-    border: 1px solid #333;
+    padding: 14px 40px;
+    border: 1.5px solid #3B82F6;
     border-radius: 28px;
-    margin-top: 8px;
+    margin-top: 12px;
 }
 """
     html = f"""
