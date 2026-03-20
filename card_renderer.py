@@ -53,8 +53,8 @@ body {
     color: #fff;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     padding: 100px;
+    padding-top: 280px;
     position: relative;
 }
 .glow {
@@ -87,8 +87,7 @@ body {
     font-size: 28px; color: #666; font-weight: 500;
 }
 .bottom {
-    position: absolute;
-    bottom: 48px; left: 100px; right: 100px;
+    margin-top: auto;
     display: flex; justify-content: space-between; align-items: center;
 }
 .bottom-text { font-size: 24px; color: #555; }
