@@ -3,7 +3,7 @@ import io
 import requests
 from bs4 import BeautifulSoup
 from PIL import Image
-from config import UNSPLASH_ACCESS_KEY
+from config import PEXELS_API_KEY
 
 
 def extract_og_image(html_text):
@@ -45,21 +45,21 @@ def _fetch_og_thumbnail(url, size=120):
         return None
 
 
-def _fetch_unsplash_thumbnail(query, size=120):
-    if not UNSPLASH_ACCESS_KEY:
+def _fetch_pexels_thumbnail(query, size=120):
+    if not PEXELS_API_KEY:
         return None
     try:
         resp = requests.get(
-            "https://api.unsplash.com/search/photos",
+            "https://api.pexels.com/v1/search",
             params={"query": query, "per_page": 1},
-            headers={"Authorization": f"Client-ID {UNSPLASH_ACCESS_KEY}"},
+            headers={"Authorization": PEXELS_API_KEY},
             timeout=10,
         )
         resp.raise_for_status()
-        results = resp.json().get("results", [])
-        if not results:
+        photos = resp.json().get("photos", [])
+        if not photos:
             return None
-        img_url = results[0]["urls"]["small"]
+        img_url = photos[0]["src"]["small"]
         img_resp = requests.get(img_url, timeout=10)
         img_resp.raise_for_status()
         return resize_to_thumbnail(img_resp.content, size)
@@ -78,7 +78,7 @@ def fetch_thumbnail(article, size=120):
     if title:
         words = title.split()[:3]
         query = " ".join(words)
-        return _fetch_unsplash_thumbnail(query, size)
+        return _fetch_pexels_thumbnail(query, size)
 
     return None
 

@@ -52,8 +52,8 @@ AI_KEYWORDS = [
     "챗봇", "자연어 처리", "컴퓨터 비전", "강화학습",
 ]
 
-# Unsplash API (썸네일 폴백)
-UNSPLASH_ACCESS_KEY = os.environ.get("UNSPLASH_ACCESS_KEY", "")
+# Pexels API (썸네일 폴백)
+PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
 
 def get_output_dir(custom_path=None):
     base = Path(custom_path) if custom_path else DEFAULT_OUTPUT
