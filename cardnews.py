@@ -110,6 +110,49 @@ def _save_history(output_base, links, titles):
     history_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _qa_check(content, output_dir):
+    """생성된 카드뉴스 품질 검증"""
+    import hashlib
+    issues = []
+    cards = content.get("cards", [])
+
+    # 1. 카드 개수 검증
+    if len(cards) < 2:
+        issues.append(f"카드 수 부족: {len(cards)}개 (최소 2개)")
+
+    # 2. 필수 필드 누락 체크
+    for i, card in enumerate(cards, 1):
+        if not card.get("title"):
+            issues.append(f"카드 {i}: 제목 누락")
+        if not card.get("points") or len(card.get("points", [])) < 3:
+            issues.append(f"카드 {i}: 포인트 부족 ({len(card.get('points', []))}개)")
+        if not card.get("link"):
+            issues.append(f"카드 {i}: 원문 링크 누락")
+
+    # 3. 카드 간 제목 중복 체크
+    titles = [c.get("title", "") for c in cards]
+    for i, t1 in enumerate(titles):
+        for j, t2 in enumerate(titles):
+            if i < j and t1 and t2 and _is_similar(t1, [t2]):
+                issues.append(f"카드 {i+1}·{j+1} 제목 유사: '{t1}' vs '{t2}'")
+
+    # 4. 이미지 파일 존재 + 중복 체크
+    img_hashes = {}
+    for f in sorted(output_dir.glob("card-*.png")):
+        h = hashlib.md5(f.read_bytes()).hexdigest()
+        if h in img_hashes:
+            issues.append(f"이미지 중복: {f.name} == {img_hashes[h]}")
+        img_hashes[h] = f.name
+
+    # 5. 표지 필드 체크
+    if not content.get("cover_headline"):
+        issues.append("표지 헤드라인 누락")
+    if not content.get("trend_summary"):
+        issues.append("트렌드 요약 누락")
+
+    return issues
+
+
 def main():
     parser = argparse.ArgumentParser(description="AI 카드뉴스 생성기")
     parser.add_argument("--count", type=int, default=DEFAULT_COUNT, help="최종 카드 개수 (기본: 4)")
@@ -210,11 +253,13 @@ def main():
     cover_headline = content.get("cover_headline", "오늘의 AI 뉴스")
     trend_summary = content.get("trend_summary", "")
 
-    # 표지 배너: 첫 번째 카드의 배너 사용
+    # 표지 배너: 첫 번째 카드의 배너 사용 (해당 카드에서는 제거하여 중복 방지)
     cover_banner = None
     for card in content["cards"]:
         if card.get("banner_b64"):
             cover_banner = card["banner_b64"]
+            card.pop("banner_b64")
+            card.pop("thumbnail_b64", None)
             break
 
     path = render_cover(
@@ -256,6 +301,16 @@ def main():
     used = [c.get("link", "") for c in content["cards"] if c.get("link")]
     used_t = [c.get("original_title", "") for c in content["cards"] if c.get("original_title")]
     _save_history(args.output, used, used_t)
+
+    # QA 검증
+    print("\n[QA] 카드 품질 검증 중...")
+    issues = _qa_check(content, output_dir)
+    if issues:
+        for issue in issues:
+            print(f"  ⚠ {issue}")
+        print(f"  → {len(issues)}건의 이슈 발견")
+    else:
+        print("  → 모든 검증 통과")
 
     print(f"\n완료! {len(generated)}장의 카드뉴스가 생성되었습니다.")
     print(f"저장 위치: {output_dir}")
