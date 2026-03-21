@@ -12,7 +12,7 @@ from ai_writer import generate_card_content
 from card_renderer import render_cover, render_news_card, render_closing
 
 HISTORY_DAYS = 3  # 최근 N일간 사용한 기사 중복 방지
-SIMILARITY_THRESHOLD = 0.35  # 제목 단어 겹침 비율 (35% 이상이면 중복)
+SIMILARITY_THRESHOLD = 0.30  # 제목 단어 겹침 비율 (30% 이상이면 중복)
 
 
 def _get_volume_number(output_base):
@@ -204,7 +204,7 @@ def main():
 
     # 4. Claude API로 선별 + 카드 문구 생성
     print("[4/5] 카드 문구 생성 중... (Claude API)")
-    content = generate_card_content(filtered, select_count=args.count)
+    content = generate_card_content(filtered, select_count=args.count, used_titles=used_titles)
     print(f"  → {len(content['cards'])}개 카드 문구 생성 완료")
 
     # Claude가 선별한 카드에 이미지 + 링크 매칭 (original_title 기반)
@@ -215,11 +215,24 @@ def main():
         orig_title = card.get("original_title", "")
         if orig_title and orig_title in title_to_article:
             matched = title_to_article[orig_title]
-        # 2차: number 기반 폴백
-        if not matched:
-            idx = card.get("number", 0) - 1
-            if 0 <= idx < len(filtered):
-                matched = filtered[idx]
+        # 2차: 퍼지 제목 매칭 (키워드 유사도 기반)
+        if not matched and orig_title:
+            best_score, best_article = 0, None
+            orig_kw = _extract_keywords(orig_title)
+            for a in filtered:
+                a_kw = _extract_keywords(a["title"])
+                if orig_kw and a_kw:
+                    overlap = len(orig_kw & a_kw) / min(len(orig_kw), len(a_kw))
+                    if overlap > best_score:
+                        best_score, best_article = overlap, a
+            if best_score >= 0.4:
+                matched = best_article
+        # 3차: link 기반 매칭
+        if not matched and card.get("link"):
+            for a in filtered:
+                if a.get("link") == card.get("link"):
+                    matched = a
+                    break
         if matched:
             if matched.get("thumbnail_b64"):
                 card["thumbnail_b64"] = matched["thumbnail_b64"]

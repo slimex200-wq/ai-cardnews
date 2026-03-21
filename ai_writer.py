@@ -4,7 +4,7 @@ from datetime import date
 import anthropic
 from config import ANTHROPIC_API_KEY, MODEL
 
-def build_prompt(articles, select_count=None):
+def build_prompt(articles, select_count=None, used_titles=None):
     articles_text = ""
     for i, a in enumerate(articles, 1):
         articles_text += f"\n### Article {i}\n"
@@ -23,12 +23,25 @@ def build_prompt(articles, select_count=None):
 선별된 {select_count}개 기사만 카드뉴스로 변환해주세요.
 """
 
-    return f"""{selection_instruction}당신은 AI/테크 업계 시니어 에디터입니다. 아래 기사들을 한국어 인스타그램 카드뉴스로 변환해주세요.
+    # 이전 사용 기사 중복 방지 지시
+    history_instruction = ""
+    if used_titles:
+        titles_list = "\n".join(f"- {t}" for t in used_titles[:12])
+        history_instruction = f"""
+## 중복 방지 (필수)
+아래는 최근 며칠간 이미 다룬 기사 제목입니다. **같은 주제, 같은 사건, 같은 인물/회사에 대한 기사는 반드시 제외**해주세요.
+URL이 다르더라도 동일한 이벤트(예: 같은 컨퍼런스, 같은 발표, 같은 사건)를 다룬 기사는 중복입니다.
+{titles_list}
+"""
+
+    return f"""{selection_instruction}{history_instruction}당신은 AI/테크 업계 시니어 에디터입니다. 아래 기사들을 한국어 인스타그램 카드뉴스로 변환해주세요.
+이 카드뉴스는 **AI Daily** — 매일 발행되는 일간 뉴스레터입니다.
 
 ## 톤 & 스타일
 - 업계 전문가가 동료에게 브리핑하는 느낌
 - 반드시 구체적 수치, 금액, 날짜, 인물명을 포함할 것
 - "폭발적 증가", "절호의 기회" 같은 빈 수식어 금지
+- "한 주", "이번 주", "this week" 등 주간 표현 절대 금지 — "오늘", "최근" 등 일간 표현만 사용
 - 마지막 포인트는 반드시 "왜 중요한지" 분석 (So What)으로 마무리
 
 ## 각 기사에 대해:
@@ -86,9 +99,9 @@ def parse_response(text):
             text = match.group(0)
     return json.loads(text)
 
-def generate_card_content(articles, select_count=None):
+def generate_card_content(articles, select_count=None, used_titles=None):
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-    prompt = build_prompt(articles, select_count=select_count)
+    prompt = build_prompt(articles, select_count=select_count, used_titles=used_titles)
 
     message = client.messages.create(
         model=MODEL,
