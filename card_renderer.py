@@ -164,7 +164,7 @@ body {
 <div class="glow"></div>
 <div class="border"></div>
 <div class="top-bar">
-    <span class="label">AI WEEKLY</span>
+    <span class="label">AI DAILY</span>
     {vol_html}
 </div>
 <div class="title">{title}</div>
@@ -431,7 +431,7 @@ body {
 <div class="glow"></div>
 <div class="message">{message}</div>
 <div class="sep"></div>
-<div class="brand">AI Weekly</div>
+<div class="brand">AI Daily</div>
 <div class="cta">
     <span class="cta-item">매일 오전 8시, AI 뉴스 업데이트</span>
     <span class="cta-highlight">팔로우 &amp; 저장</span>

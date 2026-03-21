@@ -53,7 +53,7 @@ JSON 형식으로 응답해주세요:
 {{
   "cover_headline": "표지 헤드라인",
   "cover_date": "{date.today().isoformat()}",
-  "trend_summary": "이번 주 AI 트렌드 한 줄 요약",
+  "trend_summary": "오늘의 AI 트렌드 한 줄 요약",
   "cards": [
     {{
       "number": 1, "original_title": "원문 기사 Title 그대로 복사",

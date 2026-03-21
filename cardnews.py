@@ -1,4 +1,5 @@
 import argparse
+import json
 import sys
 from pathlib import Path
 from config import DEFAULT_COUNT, get_output_dir, ANTHROPIC_API_KEY
@@ -8,6 +9,8 @@ from image_fetcher import fetch_all_thumbnails
 from ai_writer import generate_card_content
 from card_renderer import render_cover, render_news_card, render_closing
 
+HISTORY_DAYS = 3  # 최근 N일간 사용한 기사 중복 방지
+
 
 def _get_volume_number(output_base):
     """output 폴더 내 날짜 디렉토리 수로 회차 계산"""
@@ -16,6 +19,47 @@ def _get_volume_number(output_base):
         return 1
     date_dirs = [d for d in base.iterdir() if d.is_dir() and len(d.name) == 10]
     return len(date_dirs) + 1
+
+
+def _load_history(output_base):
+    """최근 HISTORY_DAYS일간 사용한 기사 링크 목록 로드"""
+    base = Path(output_base) if output_base else Path("output")
+    history_file = base / "history.json"
+    if not history_file.exists():
+        return set()
+    try:
+        data = json.loads(history_file.read_text(encoding="utf-8"))
+        from datetime import date, timedelta
+        cutoff = (date.today() - timedelta(days=HISTORY_DAYS)).isoformat()
+        used_links = set()
+        for entry in data:
+            if entry.get("date", "") >= cutoff:
+                used_links.update(entry.get("links", []))
+        return used_links
+    except (json.JSONDecodeError, KeyError):
+        return set()
+
+
+def _save_history(output_base, links):
+    """오늘 사용한 기사 링크를 히스토리에 추가"""
+    from datetime import date
+    base = Path(output_base) if output_base else Path("output")
+    history_file = base / "history.json"
+    data = []
+    if history_file.exists():
+        try:
+            data = json.loads(history_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            data = []
+    # 오늘 날짜 기존 엔트리 제거 후 추가
+    today = date.today().isoformat()
+    data = [e for e in data if e.get("date") != today]
+    data.append({"date": today, "links": links})
+    # 오래된 엔트리 정리
+    from datetime import timedelta
+    cutoff = (date.today() - timedelta(days=HISTORY_DAYS * 2)).isoformat()
+    data = [e for e in data if e.get("date", "") >= cutoff]
+    history_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def main():
@@ -35,6 +79,15 @@ def main():
         print("[에러] 뉴스를 수집하지 못했습니다.")
         sys.exit(1)
     print(f"  → {len(articles)}개 기사 수집")
+
+    # 1.5. 이전 사용 기사 중복 제거
+    used_links = _load_history(args.output)
+    if used_links:
+        before = len(articles)
+        articles = [a for a in articles if a.get("link", "") not in used_links]
+        removed = before - len(articles)
+        if removed:
+            print(f"  → {removed}개 기존 기사 제외 (최근 {HISTORY_DAYS}일 중복)")
 
     # 2. 키워드 필터링
     print("[2/5] AI 관련 기사 필터링 중...")
@@ -99,7 +152,7 @@ def main():
     cover_keywords = unique_keywords[:4]
 
     # 표지: 동적 헤드라인 + 트렌드 서사
-    cover_headline = content.get("cover_headline", "이번 주 AI 뉴스")
+    cover_headline = content.get("cover_headline", "오늘의 AI 뉴스")
     trend_summary = content.get("trend_summary", "")
 
     # 표지 배너: 첫 번째 카드의 배너 사용
@@ -143,6 +196,10 @@ def main():
         links_text = "원문 링크:\n" + "\n".join(links)
         (output_dir / "links.txt").write_text(links_text, encoding="utf-8")
         print(f"  → 링크: links.txt")
+
+    # 히스토리 저장 (사용된 기사 링크)
+    used = [c.get("link", "") for c in content["cards"] if c.get("link")]
+    _save_history(args.output, used)
 
     print(f"\n완료! {len(generated)}장의 카드뉴스가 생성되었습니다.")
     print(f"저장 위치: {output_dir}")
