@@ -23,21 +23,37 @@ def _get_volume_number(output_base):
 
 def _load_history(output_base):
     """최근 HISTORY_DAYS일간 사용한 기사 링크 목록 로드"""
+    from datetime import date, timedelta
+    import re
     base = Path(output_base) if output_base else Path("output")
     history_file = base / "history.json"
-    if not history_file.exists():
-        return set()
-    try:
-        data = json.loads(history_file.read_text(encoding="utf-8"))
-        from datetime import date, timedelta
+    used_links = set()
+
+    # 1차: history.json에서 로드
+    if history_file.exists():
+        try:
+            data = json.loads(history_file.read_text(encoding="utf-8"))
+            cutoff = (date.today() - timedelta(days=HISTORY_DAYS)).isoformat()
+            for entry in data:
+                if entry.get("date", "") >= cutoff:
+                    used_links.update(entry.get("links", []))
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    # 2차 폴백: history.json이 비어있으면 이전 날짜 폴더의 links.txt에서 복구
+    if not used_links and base.exists():
         cutoff = (date.today() - timedelta(days=HISTORY_DAYS)).isoformat()
-        used_links = set()
-        for entry in data:
-            if entry.get("date", "") >= cutoff:
-                used_links.update(entry.get("links", []))
-        return used_links
-    except (json.JSONDecodeError, KeyError):
-        return set()
+        today = date.today().isoformat()
+        for d in sorted(base.iterdir(), reverse=True):
+            if d.is_dir() and len(d.name) == 10 and cutoff <= d.name < today:
+                links_file = d / "links.txt"
+                if links_file.exists():
+                    for line in links_file.read_text(encoding="utf-8").splitlines():
+                        match = re.search(r"https?://\S+", line)
+                        if match:
+                            used_links.add(match.group(0))
+
+    return used_links
 
 
 def _save_history(output_base, links):
