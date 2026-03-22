@@ -2,7 +2,7 @@ name: Daily AI Card News
 
 on:
   schedule:
-    - cron: '0 22 * * *'
+    - cron: '0 15 * * *'
   workflow_dispatch:
 
 permissions:
@@ -48,6 +48,15 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add output/ docs/
-          DATE=$(date +%Y-%m-%d)
+          DATE=$(date -u +%Y-%m-%d)
           git diff --staged --quiet || git commit -m "chore: $DATE 카드뉴스 생성"
           git push
+
+      - name: Post to Threads
+        if: success()
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          python threads_poster.py --date "$DATE" --output output/
