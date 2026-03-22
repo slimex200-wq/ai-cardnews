@@ -28,5 +28,20 @@
       "Trump's AI framework targets state laws, shifts child safety burden to parents",
       "Gemini task automation is slow, clunky, and super impressive"
     ]
+  },
+  {
+    "date": "2026-03-22",
+    "links": [
+      "https://techcrunch.com/2026/03/20/new-court-filing-reveals-pentagon-told-anthropic-the-two-sides-were-nearly-aligned-a-week-after-trump-declared-the-relationship-kaput/",
+      "https://www.theverge.com/tech/897915/amazon-transformer-alexa-phone",
+      "https://www.theverge.com/ai-artificial-intelligence/897528/meta-rogue-ai-agent-security-incident",
+      "https://www.theverge.com/tech/897243/adobe-firefly-ai-custom-models-image-public-beta"
+    ],
+    "titles": [
+      "New court filing reveals Pentagon told Anthropic the two sides were nearly aligned — a week after Trump declared the relationship kaput",
+      "Amazon is making an Alexa phone",
+      "A rogue AI led to a serious security incident at Meta",
+      "Adobe's AI image generator can now be trained on your own art"
+    ]
   }
 ]
