@@ -43,5 +43,20 @@
       "An exclusive tour of Amazon's Trainium lab, the chip that's won over Anthropic, OpenAI, even Apple",
       "Are AI tokens the new signing bonus or just a cost of doing business?"
     ]
+  },
+  {
+    "date": "2026-03-23",
+    "links": [
+      "https://www.aitimes.com/news/articleView.html?idxno=208220",
+      "https://www.aitimes.com/news/articleView.html?idxno=208223",
+      "https://www.aitimes.com/news/articleView.html?idxno=208205",
+      "https://www.aitimes.com/news/articleView.html?idxno=208237"
+    ],
+    "titles": [
+      "오픈AI \"AI 연구원이 '북극성'...2100조 투자로 30GW 컴퓨팅 투입\"",
+      "PwC \"AI에 저항하는 직원은 회사에 있을 자격 없어\"",
+      "앤트로픽 \"AI 사용자, 일자리보다 환각에 더 큰 우려\"",
+      "삼성SDS, 국내 첫 'B300' GPU 서비스 출시…\"GPU 8장 시간 당 14만원에 제공\""
+    ]
   }
 ]
