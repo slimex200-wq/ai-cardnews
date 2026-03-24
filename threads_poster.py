@@ -18,6 +18,8 @@ PUBLISH_RETRY_ATTEMPTS = 5
 PUBLISH_RETRY_DELAY = 3  # seconds
 CONTAINER_WAIT_DELAY = 2  # seconds between container creation and publish
 MAX_CAROUSEL_ITEMS = 20
+TRANSIENT_RETRY_ATTEMPTS = 3
+TRANSIENT_RETRY_DELAY = 5  # seconds
 
 
 def _raise_for_error(response: httpx.Response, operation: str) -> None:
@@ -29,34 +31,49 @@ def _raise_for_error(response: httpx.Response, operation: str) -> None:
         )
 
 
-def _should_retry_publish(response: httpx.Response) -> bool:
-    """Media Not Found 에러만 재시도 가능."""
-    if response.status_code != 400:
-        return False
-    try:
-        error = response.json().get("error", {})
-    except Exception:
-        return False
-    return (
-        error.get("code") == 24
-        and error.get("error_subcode") == 4279009
-    )
+def _is_retryable(response: httpx.Response) -> bool:
+    """재시도 가능한 에러인지 판단 (transient 500 + Media Not Found)."""
+    # 서버 에러 (5xx) 중 transient 플래그가 있는 경우
+    if response.status_code >= 500:
+        try:
+            error = response.json().get("error", {})
+            if error.get("is_transient"):
+                return True
+        except Exception:
+            pass
+        return True  # 5xx는 기본적으로 재시도
+    # Media Not Found (컨테이너 아직 준비 안 됨)
+    if response.status_code == 400:
+        try:
+            error = response.json().get("error", {})
+        except Exception:
+            return False
+        return error.get("code") == 24 and error.get("error_subcode") == 4279009
+    return False
 
 
 def create_image_container(
     client: httpx.Client, user_id: str, access_token: str, image_url: str
 ) -> str:
-    """단일 이미지 컨테이너 생성 → creation_id 반환."""
-    response = client.post(
-        f"{GRAPH_API_BASE}/{user_id}/threads",
-        params={
-            "media_type": "IMAGE",
-            "image_url": image_url,
-            "access_token": access_token,
-        },
-    )
+    """단일 이미지 컨테이너 생성 → creation_id 반환. Transient 에러 시 재시도."""
+    for attempt in range(1, TRANSIENT_RETRY_ATTEMPTS + 1):
+        response = client.post(
+            f"{GRAPH_API_BASE}/{user_id}/threads",
+            params={
+                "media_type": "IMAGE",
+                "image_url": image_url,
+                "access_token": access_token,
+            },
+        )
+        if response.status_code < 400:
+            return response.json()["id"]
+        if attempt < TRANSIENT_RETRY_ATTEMPTS and _is_retryable(response):
+            print(f"  → 이미지 컨테이너 생성 재시도 {attempt}/{TRANSIENT_RETRY_ATTEMPTS}...")
+            time.sleep(TRANSIENT_RETRY_DELAY)
+            continue
+        _raise_for_error(response, f"create image container ({image_url})")
     _raise_for_error(response, f"create image container ({image_url})")
-    return response.json()["id"]
+    return ""
 
 
 def create_carousel_container(
@@ -139,7 +156,7 @@ def publish_container(
         if response.status_code < 400:
             return response.json()["id"]
 
-        if attempt < PUBLISH_RETRY_ATTEMPTS and _should_retry_publish(response):
+        if attempt < PUBLISH_RETRY_ATTEMPTS and _is_retryable(response):
             print(f"  → Media Not Found, 재시도 {attempt}/{PUBLISH_RETRY_ATTEMPTS}...")
             time.sleep(PUBLISH_RETRY_DELAY)
             continue
