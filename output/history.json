@@ -58,5 +58,20 @@
       "AI 사용 의혹으로 공포 소설 '샤이 걸' 출판 취소",
       "AI 모델에 \"의식이 있다\"라고 학습했더니"
     ]
+  },
+  {
+    "date": "2026-03-24",
+    "links": [
+      "https://www.theverge.com/ai-artificial-intelligence/899850/openai-sora-ai-chatgpt",
+      "https://www.theverge.com/ai-artificial-intelligence/899823/arm-agi-cpu-meta",
+      "https://www.aitimes.com/news/articleView.html?idxno=208285",
+      "https://techcrunch.com/2026/03/24/databricks-buys-two-startups-lakewatch-antimatter-siftd-ai-security/"
+    ],
+    "titles": [
+      "OpenAI just gave up on Sora and its billion-dollar Disney deal",
+      "Arm's first CPU ever will plug into Meta's AI data centers later this year",
+      "앤트로픽, '클로드'에 화면 제어 기능 도입…\"AI가 컴퓨터 직접 조작\"",
+      "Databricks bought two startups to underpin its new AI security product"
+    ]
   }
 ]
