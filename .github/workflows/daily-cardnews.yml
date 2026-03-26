@@ -2,7 +2,7 @@ name: Daily AI Card News (Hybrid)
 
 on:
   schedule:
-    - cron: '0 23 * * *'    # 매일 08:00 KST
+    - cron: '0 */2 * * *'   # 2시간마다
   workflow_dispatch:
     inputs:
       text_only:
