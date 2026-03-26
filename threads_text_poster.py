@@ -269,13 +269,24 @@ def main():
         print("[에러] THREADS_ACCESS_TOKEN 또는 THREADS_USER_ID 미설정")
         sys.exit(1)
 
-    # ── 1. 뉴스 수집 ──
+    # ── 1. 뉴스 수집 (RSS + 소셜) ──
     print("[1/5] AI 뉴스 수집 중...")
     articles = collect_news(max_count=50)
+    print(f"  → RSS {len(articles)}개 수집")
+
+    # 소셜 (Reddit/X) 수집 병합
+    try:
+        from social_collector import collect_social
+        social_articles = collect_social(max_count=20)
+        if social_articles:
+            articles = social_articles + articles  # 소셜 우선
+    except Exception as e:
+        print(f"  [소셜] 수집 실패, RSS만 사용: {e}")
+
     if not articles:
         print("[에러] 뉴스를 수집하지 못했습니다.")
         sys.exit(1)
-    print(f"  → {len(articles)}개 기사 수집")
+    print(f"  → 총 {len(articles)}개 기사")
 
     # ── 2. 필터링 ──
     print("[2/5] AI 관련 기사 필터링 중...")
