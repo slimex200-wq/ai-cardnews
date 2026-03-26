@@ -1,7 +1,7 @@
 import sys
 sys.path.insert(0, '.')
 import json
-from ai_writer import build_prompt, parse_response
+from ai_writer_v2 import build_prompt_card as build_prompt, parse_response
 
 def test_build_prompt_contains_articles():
     articles = [

@@ -1,20 +1,19 @@
-"""threads_poster 모듈 테스트."""
+"""threads_text_poster 모듈 테스트."""
 
 import json
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from threads_poster import (
+from threads_text_poster import (
     GRAPH_API_BASE,
-    _raise_for_error,
-    _should_retry_publish,
+    _is_retryable,
     check_url_accessible,
-    create_carousel_container,
+    create_carousel_reply_container,
     create_image_container,
     create_text_container,
-    post_carousel_with_reply,
     publish_container,
+    post_hybrid,
 )
 
 
@@ -26,23 +25,7 @@ def _mock_response(status_code=200, json_data=None, text=""):
     return resp
 
 
-class TestRaiseForError:
-    def test_success_does_not_raise(self):
-        resp = _mock_response(200)
-        _raise_for_error(resp, "test")
-
-    def test_400_raises_with_body(self):
-        resp = _mock_response(400, text='{"error": "bad request"}')
-        with pytest.raises(RuntimeError, match="test op failed"):
-            _raise_for_error(resp, "test op")
-
-    def test_500_raises(self):
-        resp = _mock_response(500, text="Internal Server Error")
-        with pytest.raises(RuntimeError):
-            _raise_for_error(resp, "server")
-
-
-class TestShouldRetryPublish:
+class TestIsRetryable:
     def test_media_not_found_returns_true(self):
         resp = _mock_response(
             400,
@@ -54,21 +37,19 @@ class TestShouldRetryPublish:
                 }
             },
         )
-        assert _should_retry_publish(resp) is True
+        assert _is_retryable(resp) is True
 
     def test_other_400_returns_false(self):
         resp = _mock_response(400, json_data={"error": {"code": 100}})
-        assert _should_retry_publish(resp) is False
+        assert _is_retryable(resp) is False
 
-    def test_non_400_returns_false(self):
+    def test_500_returns_true(self):
         resp = _mock_response(500)
-        assert _should_retry_publish(resp) is False
+        assert _is_retryable(resp) is True
 
-    def test_invalid_json_returns_false(self):
-        resp = MagicMock()
-        resp.status_code = 400
-        resp.json.side_effect = ValueError("bad json")
-        assert _should_retry_publish(resp) is False
+    def test_200_returns_false(self):
+        resp = _mock_response(200)
+        assert _is_retryable(resp) is False
 
 
 class TestCreateImageContainer:
@@ -90,22 +71,6 @@ class TestCreateImageContainer:
 
         with pytest.raises(RuntimeError):
             create_image_container(client, "user1", "token1", "https://example.com/img.png")
-
-
-class TestCreateCarouselContainer:
-    def test_success(self):
-        client = MagicMock()
-        client.post.return_value = _mock_response(200, {"id": "car_456"})
-
-        result = create_carousel_container(
-            client, "user1", "token1", ["img_1", "img_2"], "caption text"
-        )
-        assert result == "car_456"
-
-        call_args = client.post.call_args
-        assert call_args[1]["params"]["media_type"] == "CAROUSEL"
-        assert call_args[1]["params"]["children"] == "img_1,img_2"
-        assert call_args[1]["params"]["text"] == "caption text"
 
 
 class TestCreateTextContainer:
@@ -133,6 +98,20 @@ class TestCreateTextContainer:
         assert "reply_to_id" not in call_args[1]["params"]
 
 
+class TestCreateCarouselReplyContainer:
+    def test_success(self):
+        client = MagicMock()
+        client.post.return_value = _mock_response(200, {"id": "car_456"})
+
+        result = create_carousel_reply_container(
+            client, "user1", "token1", ["img_1", "img_2"], reply_to_id="post_123"
+        )
+        assert result == "car_456"
+
+        call_args = client.post.call_args
+        assert call_args[1]["params"]["media_type"] == "CAROUSEL"
+        assert call_args[1]["params"]["children"] == "img_1,img_2"
+        assert call_args[1]["params"]["reply_to_id"] == "post_123"
 
 
 class TestPublishContainer:
@@ -144,7 +123,7 @@ class TestPublishContainer:
         assert result == "pub_001"
         assert client.post.call_count == 1
 
-    @patch("threads_poster.time.sleep")
+    @patch("threads_text_poster.time.sleep")
     def test_retry_on_media_not_found(self, mock_sleep):
         client = MagicMock()
         fail_resp = _mock_response(
@@ -169,73 +148,47 @@ class TestPublishContainer:
 
 
 class TestCheckUrlAccessible:
-    @patch("threads_poster.httpx.head")
+    @patch("threads_text_poster.httpx.head")
     def test_accessible(self, mock_head):
         mock_head.return_value = _mock_response(200)
         assert check_url_accessible("https://example.com/img.png") is True
 
-    @patch("threads_poster.httpx.head")
+    @patch("threads_text_poster.httpx.head")
     def test_not_found(self, mock_head):
         mock_head.return_value = _mock_response(404)
         assert check_url_accessible("https://example.com/img.png") is False
 
-    @patch("threads_poster.httpx.head")
+    @patch("threads_text_poster.httpx.head")
     def test_network_error(self, mock_head):
         mock_head.side_effect = Exception("timeout")
         assert check_url_accessible("https://example.com/img.png") is False
 
 
-class TestPostCarouselWithReply:
-    @patch("threads_poster.time.sleep")
-    @patch("threads_poster.httpx.Client")
-    def test_full_flow_with_reply(self, mock_client_cls, mock_sleep):
+class TestPostHybrid:
+    @patch("threads_text_poster.time.sleep")
+    @patch("threads_text_poster.httpx.Client")
+    def test_text_only_flow(self, mock_client_cls, mock_sleep):
         mock_client = MagicMock()
         mock_client_cls.return_value.__enter__ = MagicMock(return_value=mock_client)
         mock_client_cls.return_value.__exit__ = MagicMock(return_value=False)
 
-        # image containers → carousel container → publish carousel → reply container → publish reply
+        # main container → publish main → reply container → publish reply
         mock_client.post.side_effect = [
-            _mock_response(200, {"id": "img_1"}),    # image 1
-            _mock_response(200, {"id": "img_2"}),    # image 2
-            _mock_response(200, {"id": "car_1"}),    # carousel
-            _mock_response(200, {"id": "post_1"}),   # publish carousel
-            _mock_response(200, {"id": "reply_c"}),  # reply container
-            _mock_response(200, {"id": "reply_1"}),  # publish reply
+            _mock_response(200, {"id": "main_c"}),
+            _mock_response(200, {"id": "post_1"}),
+            _mock_response(200, {"id": "reply_c"}),
+            _mock_response(200, {"id": "reply_1"}),
         ]
 
-        result = post_carousel_with_reply(
+        result = post_hybrid(
             access_token="token",
             user_id="user1",
-            image_urls=["https://a.com/1.png", "https://a.com/2.png"],
-            caption="test caption",
-            reply_text="links here",
+            main_text="main text",
+            reply_text="reply text",
+            carousel_image_urls=None,
         )
 
         assert result["post_id"] == "post_1"
         assert result["reply_id"] == "reply_1"
-        assert mock_client.post.call_count == 6
-
-    @patch("threads_poster.time.sleep")
-    @patch("threads_poster.httpx.Client")
-    def test_without_reply(self, mock_client_cls, mock_sleep):
-        mock_client = MagicMock()
-        mock_client_cls.return_value.__enter__ = MagicMock(return_value=mock_client)
-        mock_client_cls.return_value.__exit__ = MagicMock(return_value=False)
-
-        mock_client.post.side_effect = [
-            _mock_response(200, {"id": "img_1"}),
-            _mock_response(200, {"id": "car_1"}),
-            _mock_response(200, {"id": "post_1"}),
-        ]
-
-        result = post_carousel_with_reply(
-            access_token="token",
-            user_id="user1",
-            image_urls=["https://a.com/1.png"],
-            caption="test",
-            reply_text=None,
-        )
-
-        assert result["post_id"] == "post_1"
-        assert result["reply_id"] is None
-        assert mock_client.post.call_count == 3
+        assert result["carousel_id"] is None
+        assert mock_client.post.call_count == 4

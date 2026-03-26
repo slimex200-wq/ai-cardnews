@@ -1,17 +1,32 @@
-name: Daily AI Card News
+name: Daily AI Card News (Hybrid)
 
 on:
   schedule:
-    - cron: '0 23 * * *'
+    - cron: '0 23 * * *'    # 매일 08:00 KST
   workflow_dispatch:
+    inputs:
+      text_only:
+        description: '텍스트만 포스팅 (캐러셀 없이)'
+        type: boolean
+        default: false
+      carousel_delay:
+        description: '캐러셀 딜레이 (분)'
+        type: number
+        default: 10
 
 permissions:
   contents: write
   pages: write
 
 jobs:
+  # ─────────────────────────────────────────
+  # Job 1: 카드뉴스 생성 + Git Push
+  # ─────────────────────────────────────────
   generate:
     runs-on: ubuntu-latest
+    outputs:
+      date: ${{ steps.date.outputs.date }}
+      has_cards: ${{ steps.check.outputs.has_cards }}
 
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +49,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y fonts-noto-cjk
 
+      - name: Set date
+        id: date
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
       - name: Generate card news
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -48,15 +67,193 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add output/ docs/
-          DATE=$(date -u +%Y-%m-%d)
-          git diff --staged --quiet || git commit -m "chore: $DATE 카드뉴스 생성"
+          git diff --staged --quiet || git commit -m "chore: ${{ steps.date.outputs.date }} 카드뉴스 생성"
           git push
 
-      - name: Post to Threads
-        if: success()
+      - name: Check card images exist
+        id: check
+        run: |
+          DATE=${{ steps.date.outputs.date }}
+          if ls output/$DATE/card-*.png 1>/dev/null 2>&1; then
+            echo "has_cards=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_cards=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ─────────────────────────────────────────
+  # Job 2: 텍스트 메인 포스트 + 첫 댓글
+  # ─────────────────────────────────────────
+  post-text:
+    needs: generate
+    runs-on: ubuntu-latest
+    outputs:
+      post_id: ${{ steps.post.outputs.post_id }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate and post text
+        id: post
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+        run: |
+          python -c "
+          import json, os, time
+          import httpx
+          from rss_collector import collect_news
+          from news_filter import filter_by_keywords
+          from ai_writer_v2 import generate_text_post
+          from threads_text_poster import (
+              create_text_container, publish_container,
+              CONTAINER_WAIT_DELAY, FIRST_REPLY_DELAY,
+          )
+          from cardnews import _load_history
+          from pathlib import Path
+          from datetime import date
+
+          articles = collect_news(max_count=50)
+          filtered = filter_by_keywords(articles, max_count=10) or articles[:10]
+          _, used_titles = _load_history('output')
+
+          content = generate_text_post(filtered, used_titles=used_titles)
+          print(f'선택: {content[\"selected_article\"][\"original_title\"]}')
+
+          access_token = os.environ['THREADS_ACCESS_TOKEN']
+          user_id = os.environ['THREADS_USER_ID']
+
+          with httpx.Client(timeout=30.0) as client:
+              main_cid = create_text_container(client, user_id, access_token, content['post_main'])
+              time.sleep(CONTAINER_WAIT_DELAY)
+              post_id = publish_container(client, user_id, access_token, main_cid)
+              print(f'메인 포스트: {post_id}')
+
+              if content.get('post_reply'):
+                  time.sleep(FIRST_REPLY_DELAY)
+                  reply_cid = create_text_container(
+                      client, user_id, access_token,
+                      content['post_reply'], reply_to_id=post_id,
+                  )
+                  time.sleep(CONTAINER_WAIT_DELAY)
+                  reply_id = publish_container(client, user_id, access_token, reply_cid)
+                  print(f'첫 댓글: {reply_id}')
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'post_id={post_id}\n')
+
+          out = Path('output') / date.today().isoformat()
+          out.mkdir(parents=True, exist_ok=True)
+          (out / 'text_post.json').write_text(
+              json.dumps(content, ensure_ascii=False, indent=2)
+          )
+          "
+
+      - name: Commit text post data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add output/
+          git diff --staged --quiet || git commit -m "chore: ${{ needs.generate.outputs.date }} 텍스트 포스트"
+          git push
+
+  # ─────────────────────────────────────────
+  # Job 3: 캐러셀 카드뉴스 대댓글 (딜레이 후)
+  # ─────────────────────────────────────────
+  post-carousel:
+    needs: [generate, post-text]
+    if: ${{ needs.generate.outputs.has_cards == 'true' && github.event.inputs.text_only != 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Wait for engagement
+        run: |
+          DELAY=${{ github.event.inputs.carousel_delay || 10 }}
+          echo "캐러셀 딜레이: ${DELAY}분"
+          sleep $((DELAY * 60))
+
+      - name: Wait for Pages deployment
+        run: |
+          DATE=${{ needs.generate.outputs.date }}
+          BASE_URL="https://slimex200-wq.github.io/ai-cardnews"
+          FIRST_CARD=$(ls output/$DATE/card-*.png 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "card-01.png")
+          URL="${BASE_URL}/cards/${DATE}/${FIRST_CARD}"
+          echo "Pages 배포 확인: $URL"
+          for i in $(seq 1 12); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+            if [ "$STATUS" = "200" ]; then
+              echo "Pages 배포 확인 완료"
+              break
+            fi
+            echo "대기 중... ($((i * 10))초) status=$STATUS"
+            sleep 10
+          done
+
+      - name: Post carousel reply
         env:
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
         run: |
-          DATE=$(date -u +%Y-%m-%d)
-          python threads_poster.py --date "$DATE" --output output/
+          DATE=${{ needs.generate.outputs.date }}
+          POST_ID=${{ needs.post-text.outputs.post_id }}
+          BASE_URL="https://slimex200-wq.github.io/ai-cardnews"
+
+          python -c "
+          import os, time, glob
+          import httpx
+          from threads_text_poster import (
+              create_image_container, create_carousel_reply_container,
+              publish_container, CONTAINER_WAIT_DELAY,
+          )
+
+          access_token = os.environ['THREADS_ACCESS_TOKEN']
+          user_id = os.environ['THREADS_USER_ID']
+          post_id = '${POST_ID}'
+          date_str = '${DATE}'
+          base_url = '${BASE_URL}'
+
+          card_files = sorted(glob.glob(f'output/{date_str}/card-*.png'))
+          image_urls = [
+              f'{base_url}/cards/{date_str}/{os.path.basename(f)}'
+              for f in card_files
+          ]
+          print(f'캐러셀: {len(image_urls)}장')
+
+          with httpx.Client(timeout=30.0) as client:
+              children = []
+              for i, url in enumerate(image_urls, 1):
+                  cid = create_image_container(client, user_id, access_token, url)
+                  children.append(cid)
+                  print(f'  이미지 {i}/{len(image_urls)}: {cid}')
+
+              time.sleep(CONTAINER_WAIT_DELAY)
+              carousel_cid = create_carousel_reply_container(
+                  client, user_id, access_token, children, reply_to_id=post_id,
+              )
+              time.sleep(CONTAINER_WAIT_DELAY)
+              carousel_id = publish_container(client, user_id, access_token, carousel_cid)
+              print(f'캐러셀 댓글: {carousel_id}')
+          "
+

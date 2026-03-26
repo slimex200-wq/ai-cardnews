@@ -8,7 +8,7 @@ from config import DEFAULT_COUNT, get_output_dir, ANTHROPIC_API_KEY
 from rss_collector import collect_news
 from news_filter import filter_by_keywords
 from image_fetcher import fetch_all_thumbnails
-from ai_writer import generate_card_content
+from ai_writer_v2 import generate_card_content
 from card_renderer import render_cover, render_news_card, render_closing
 
 HISTORY_DAYS = 3  # 최근 N일간 사용한 기사 중복 방지
