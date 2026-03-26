@@ -171,6 +171,11 @@ jobs:
           (out / 'text_post.json').write_text(
               json.dumps(content, ensure_ascii=False, indent=2)
           )
+
+          from cardnews import _save_history
+          selected_title = content.get('selected_article', {}).get('original_title', '')
+          if selected_title:
+              _save_history('output', [], [selected_title])
           "
 
       - name: Commit text post data

@@ -400,6 +400,12 @@ def main():
     text_file.write_text(json.dumps(content, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\n  → 저장: {text_file}")
 
+    # 텍스트 포스트 선택 기사도 히스토리에 추가 (중복 포스팅 방지)
+    selected = content.get("selected_article", {})
+    if selected.get("original_title"):
+        from cardnews import _save_history
+        _save_history(args.output, [], [selected["original_title"]])
+
     # 텔레그램 프리뷰 전송
     from telegram_notify import send_preview
     send_preview(content, mode="text")
