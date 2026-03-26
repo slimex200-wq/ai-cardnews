@@ -126,9 +126,7 @@ def main():
     result = post_thread(
         access_token=THREADS_ACCESS_TOKEN,
         user_id=THREADS_USER_ID,
-        main_text=content["post_main"],
-        analysis_text=content.get("post_analysis"),
-        reply_text=content.get("post_reply"),
+        content=content,
         image_url=og_image,
         source_link=source_link,
     )

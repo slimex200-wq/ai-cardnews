@@ -1,4 +1,4 @@
-"""Threads API 포스팅 모듈 — 텍스트 + 분석 대댓글 + 이미지/링크 대댓글."""
+"""Threads API 포스팅 모듈 — 메인 + 5개 대댓글 + 이미지/링크."""
 
 import time
 import httpx
@@ -7,7 +7,7 @@ GRAPH_API_BASE = "https://graph.threads.net/v1.0"
 PUBLISH_RETRY_ATTEMPTS = 5
 PUBLISH_RETRY_DELAY = 3
 CONTAINER_WAIT_DELAY = 2
-FIRST_REPLY_DELAY = 5
+REPLY_DELAY = 5
 
 
 def _is_retryable(response):
@@ -22,114 +22,113 @@ def _is_retryable(response):
     return False
 
 
-def _create_text_container(client, user_id, access_token, text, reply_to_id=""):
-    params = {
-        "media_type": "TEXT",
-        "text": text,
-        "access_token": access_token,
-    }
+def _create_text(client, user_id, token, text, reply_to_id=""):
+    params = {"media_type": "TEXT", "text": text, "access_token": token}
     if reply_to_id:
         params["reply_to_id"] = reply_to_id
-    response = client.post(f"{GRAPH_API_BASE}/{user_id}/threads", params=params)
-    if response.status_code >= 400:
-        raise RuntimeError(f"create text container failed: {response.status_code} {response.text[:500]}")
-    return response.json()["id"]
+    resp = client.post(f"{GRAPH_API_BASE}/{user_id}/threads", params=params)
+    if resp.status_code >= 400:
+        raise RuntimeError(f"text container failed: {resp.status_code} {resp.text[:500]}")
+    return resp.json()["id"]
 
 
-def _create_image_container(client, user_id, access_token, image_url, text="", reply_to_id=""):
-    """이미지 컨테이너 생성 (텍스트 포함 가능)."""
-    params = {
-        "media_type": "IMAGE",
-        "image_url": image_url,
-        "access_token": access_token,
-    }
+def _create_image(client, user_id, token, image_url, text="", reply_to_id=""):
+    params = {"media_type": "IMAGE", "image_url": image_url, "access_token": token}
     if text:
         params["text"] = text
     if reply_to_id:
         params["reply_to_id"] = reply_to_id
-    response = client.post(f"{GRAPH_API_BASE}/{user_id}/threads", params=params)
-    if response.status_code >= 400:
-        raise RuntimeError(f"create image container failed: {response.status_code} {response.text[:500]}")
-    return response.json()["id"]
+    resp = client.post(f"{GRAPH_API_BASE}/{user_id}/threads", params=params)
+    if resp.status_code >= 400:
+        raise RuntimeError(f"image container failed: {resp.status_code} {resp.text[:500]}")
+    return resp.json()["id"]
 
 
-def _publish(client, user_id, access_token, creation_id):
-    response = None
+def _publish(client, user_id, token, creation_id):
     for attempt in range(1, PUBLISH_RETRY_ATTEMPTS + 1):
-        response = client.post(
+        resp = client.post(
             f"{GRAPH_API_BASE}/{user_id}/threads_publish",
-            params={"creation_id": creation_id, "access_token": access_token},
+            params={"creation_id": creation_id, "access_token": token},
         )
-        if response.status_code < 400:
-            return response.json()["id"]
-        if attempt < PUBLISH_RETRY_ATTEMPTS and _is_retryable(response):
-            print(f"  발행 재시도 {attempt}/{PUBLISH_RETRY_ATTEMPTS}...")
+        if resp.status_code < 400:
+            return resp.json()["id"]
+        if attempt < PUBLISH_RETRY_ATTEMPTS and _is_retryable(resp):
+            print(f"    발행 재시도 {attempt}/{PUBLISH_RETRY_ATTEMPTS}...")
             time.sleep(PUBLISH_RETRY_DELAY)
             continue
-        break
-    raise RuntimeError(f"publish failed: {response.status_code} {response.text[:500]}")
+    raise RuntimeError(f"publish failed: {resp.status_code} {resp.text[:500]}")
 
 
-def post_thread(access_token, user_id, main_text, analysis_text=None,
-                reply_text=None, image_url=None, source_link=None):
-    """Threads 포스팅: 메인 → 분석 대댓글 → 첫 댓글 → 이미지+링크 대댓글.
+def _post_reply(client, user_id, token, text, reply_to_id, label):
+    """텍스트 대댓글 하나 발행."""
+    if not text:
+        return None
+    time.sleep(REPLY_DELAY)
+    cid = _create_text(client, user_id, token, text, reply_to_id=reply_to_id)
+    time.sleep(CONTAINER_WAIT_DELAY)
+    rid = _publish(client, user_id, token, cid)
+    print(f"  {label}: {rid}")
+    return rid
+
+
+def post_thread(access_token, user_id, content, image_url=None, source_link=None):
+    """Threads 스레드 포스팅.
+
+    구조:
+      메인 → 쉽게 말하면 → 왜 중요 → 뭘 해야 → 반대 의견 → 가벼운 한마디 → 이미지+링크
+
+    Args:
+        content: ai_writer.generate_post() 결과
+        image_url: og:image URL (없으면 건너뜀)
+        source_link: 원문 URL (없으면 건너뜀)
 
     Returns:
-        {"post_id": str, "analysis_id": str|None, "reply_id": str|None, "link_id": str|None}
+        dict with post_id and reply IDs
     """
+    result = {}
+
     with httpx.Client(timeout=30.0) as client:
-        # 1. 메인 포스트
-        main_cid = _create_text_container(client, user_id, access_token, main_text)
+        # 메인 포스트
+        main_cid = _create_text(client, user_id, access_token, content["post_main"])
         time.sleep(CONTAINER_WAIT_DELAY)
         post_id = _publish(client, user_id, access_token, main_cid)
         print(f"  메인 포스트: {post_id}")
+        result["post_id"] = post_id
 
-        # 2. 분석 대댓글
-        analysis_id = None
-        if analysis_text:
-            time.sleep(FIRST_REPLY_DELAY)
-            analysis_cid = _create_text_container(
-                client, user_id, access_token, analysis_text, reply_to_id=post_id,
+        # 대댓글 순서대로
+        replies = [
+            ("reply_explain", "쉽게 말하면"),
+            ("reply_important", "왜 중요"),
+            ("reply_action", "뭘 해야"),
+            ("reply_counter", "반대 의견"),
+            ("reply_casual", "가벼운 한마디"),
+        ]
+        for key, label in replies:
+            rid = _post_reply(
+                client, user_id, access_token,
+                content.get(key, ""), post_id, label,
             )
-            time.sleep(CONTAINER_WAIT_DELAY)
-            analysis_id = _publish(client, user_id, access_token, analysis_cid)
-            print(f"  분석 대댓글: {analysis_id}")
+            if rid:
+                result[key] = rid
 
-        # 3. 첫 댓글 (가벼운 부연)
-        reply_id = None
-        if reply_text:
-            time.sleep(FIRST_REPLY_DELAY)
-            reply_cid = _create_text_container(
-                client, user_id, access_token, reply_text, reply_to_id=post_id,
-            )
-            time.sleep(CONTAINER_WAIT_DELAY)
-            reply_id = _publish(client, user_id, access_token, reply_cid)
-            print(f"  첫 댓글: {reply_id}")
-
-        # 4. 이미지 + 원문 링크 대댓글
-        link_id = None
+        # 이미지 + 링크 대댓글
         if image_url or source_link:
-            time.sleep(FIRST_REPLY_DELAY)
+            time.sleep(REPLY_DELAY)
             link_text = f"원문: {source_link}" if source_link else ""
             try:
                 if image_url:
-                    link_cid = _create_image_container(
+                    cid = _create_image(
                         client, user_id, access_token, image_url,
                         text=link_text, reply_to_id=post_id,
                     )
                 else:
-                    link_cid = _create_text_container(
+                    cid = _create_text(
                         client, user_id, access_token, link_text, reply_to_id=post_id,
                     )
                 time.sleep(CONTAINER_WAIT_DELAY)
-                link_id = _publish(client, user_id, access_token, link_cid)
-                print(f"  링크 대댓글: {link_id}")
+                result["link_id"] = _publish(client, user_id, access_token, cid)
+                print(f"  링크: {result['link_id']}")
             except Exception as e:
-                print(f"  링크 대댓글 실패 (건너뜀): {e}")
+                print(f"  링크 실패 (건너뜀): {e}")
 
-    return {
-        "post_id": post_id,
-        "analysis_id": analysis_id,
-        "reply_id": reply_id,
-        "link_id": link_id,
-    }
+    return result

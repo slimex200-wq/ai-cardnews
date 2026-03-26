@@ -20,14 +20,14 @@ def send_result(result):
         return False
 
     lines = ["[AI Threads 포스팅 완료]"]
-    if result.get("post_id"):
-        lines.append(f"메인: {result['post_id']}")
-    if result.get("analysis_id"):
-        lines.append(f"분석: {result['analysis_id']}")
-    if result.get("reply_id"):
-        lines.append(f"첫 댓글: {result['reply_id']}")
-    if result.get("link_id"):
-        lines.append(f"링크: {result['link_id']}")
+    for key, label in [
+        ("post_id", "메인"), ("reply_explain", "설명"),
+        ("reply_important", "중요성"), ("reply_action", "행동"),
+        ("reply_counter", "반대"), ("reply_casual", "한마디"),
+        ("link_id", "링크"),
+    ]:
+        if result.get(key):
+            lines.append(f"{label}: {result[key]}")
 
     return _send_message("\n".join(lines))
 
@@ -44,11 +44,20 @@ def _format_text_preview(content):
         "--- 메인 ---",
         content.get("post_main", ""),
         "",
-        "--- 분석 ---",
-        content.get("post_analysis", ""),
+        "--- 쉽게 말하면 ---",
+        content.get("reply_explain", ""),
         "",
-        "--- 첫 댓글 ---",
-        content.get("post_reply", ""),
+        "--- 왜 중요 ---",
+        content.get("reply_important", ""),
+        "",
+        "--- 뭘 해야 ---",
+        content.get("reply_action", ""),
+        "",
+        "--- 반대 의견 ---",
+        content.get("reply_counter", ""),
+        "",
+        "--- 한마디 ---",
+        content.get("reply_casual", ""),
     ]
     return "\n".join(lines)
 
