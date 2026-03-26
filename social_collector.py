@@ -6,12 +6,10 @@ rss_collector와 동일한 {title, summary, source, link} 형식 반환.
 
 import json
 import os
-import re
 import sys
 import urllib.error
 import urllib.request
 import urllib.parse
-from datetime import date, datetime, timedelta, timezone
 
 # ─────────────────────────────────────────────
 # 설정
@@ -20,9 +18,7 @@ from datetime import date, datetime, timedelta, timezone
 SCRAPECREATORS_API_KEY = os.environ.get("SCRAPECREATORS_API_KEY", "")
 SCRAPECREATORS_BASE = "https://api.scrapecreators.com/v1/reddit"
 
-XAI_API_KEY = os.environ.get("XAI_API_KEY", "")
-XAI_RESPONSES_URL = "https://api.x.ai/v1/responses"
-XAI_MODEL = "grok-3-mini"
+SCRAPECREATORS_X_BASE = "https://api.scrapecreators.com/v1/twitter/search"
 
 
 # ─────────────────────────────────────────────
@@ -109,101 +105,59 @@ def collect_reddit(queries=None, max_count=15):
 
 
 # ─────────────────────────────────────────────
-# X/Twitter (xAI Responses API + x_search tool)
+# X/Twitter (ScrapeCreators API)
 # ─────────────────────────────────────────────
 
-X_SEARCH_PROMPT = """Search X/Twitter for the most discussed posts about: {topic}
-
-Focus on posts from {from_date} to {to_date}. Find 10-15 high-quality posts.
-
-Return ONLY valid JSON:
-{{
-  "items": [
-    {{
-      "text": "Post text",
-      "url": "https://x.com/user/status/...",
-      "author_handle": "username",
-      "likes": 100,
-      "reposts": 25
-    }}
-  ]
-}}
-
-Rules:
-- Prefer posts with substantive content, opinions, or breaking news
-- Include diverse voices
-- Korean AI community posts are welcome"""
-
-
 def collect_x(queries=None, max_count=15):
-    """X/Twitter에서 AI 뉴스 수집 (xAI Responses API)."""
-    if not XAI_API_KEY:
-        print("[X] XAI_API_KEY 미설정, 건너뜀")
+    """X/Twitter에서 AI 뉴스 수집 (ScrapeCreators API)."""
+    if not SCRAPECREATORS_API_KEY:
+        print("[X] SCRAPECREATORS_API_KEY 미설정, 건너뜀")
         return []
 
-    queries = queries or ["AI news breakthrough controversy"]
-    today = date.today().isoformat()
-    from_date = (date.today() - timedelta(days=2)).isoformat()
-    headers = {"Authorization": f"Bearer {XAI_API_KEY}"}
+    queries = queries or ["artificial intelligence", "AI"]
+    headers = {"x-api-key": SCRAPECREATORS_API_KEY}
     articles = []
     seen = set()
 
     for query in queries:
-        payload = {
-            "model": XAI_MODEL,
-            "tools": [{"type": "x_search", "from_date": from_date, "to_date": today}],
-            "input": [
-                {
-                    "role": "user",
-                    "content": X_SEARCH_PROMPT.format(
-                        topic=query, from_date=from_date, to_date=today,
-                    ),
-                }
-            ],
-        }
+        params = urllib.parse.urlencode({
+            "query": query,
+            "sort_by": "relevance",
+        })
+        url = f"{SCRAPECREATORS_X_BASE}?{params}"
         try:
-            data = _http_post(XAI_RESPONSES_URL, payload, headers=headers, timeout=60)
+            data = _http_get(url, headers=headers, timeout=45)
         except Exception as e:
-            print(f"  [X] 검색 실패: {e}")
+            print(f"  [X] 검색 실패 ({query[:30]}): {e}")
             continue
 
-        # 응답에서 텍스트 추출
-        output_text = ""
-        for item in data.get("output", []):
-            if item.get("type") == "message":
-                for content in item.get("content", []):
-                    if content.get("type") == "output_text":
-                        output_text = content.get("text", "")
-
-        if not output_text:
-            continue
-
-        # JSON 추출
-        match = re.search(r"\{.*\}", output_text, re.DOTALL)
-        if not match:
-            continue
-        try:
-            parsed = json.loads(match.group(0))
-        except json.JSONDecodeError:
-            continue
-
-        for post in parsed.get("items", []):
-            text = post.get("text", "")
+        tweets = data.get("tweets") or data.get("data") or data.get("results") or []
+        for tweet in tweets:
+            text = tweet.get("full_text") or tweet.get("text") or ""
             if not text or text[:50] in seen:
                 continue
             seen.add(text[:50])
 
+            user = tweet.get("user") or tweet.get("author") or {}
+            author = user.get("screen_name") or user.get("username") or ""
+            tweet_id = tweet.get("id") or tweet.get("id_str") or ""
+            link = f"https://x.com/{author}/status/{tweet_id}" if author and tweet_id else ""
+            likes = tweet.get("favorite_count") or tweet.get("likes") or 0
+
             lines = text.strip().split("\n")
             title = lines[0][:120] if lines else text[:120]
-            author = post.get("author_handle", "")
-            link = post.get("url", "")
 
             articles.append({
                 "title": title,
                 "summary": text[:300],
                 "source": f"X/@{author}" if author else "X",
                 "link": link,
+                "_score": likes,
             })
+
+    articles.sort(key=lambda a: a.get("_score", 0), reverse=True)
+    for a in articles:
+        a.pop("_score", None)
 
     print(f"  -> X {len(articles[:max_count])}개 수집")
     return articles[:max_count]
@@ -222,7 +176,7 @@ def collect_social(max_count=30):
         max_count=15,
     )
     x_articles = collect_x(
-        queries=["AI news trending today 2026"],
+        queries=["artificial intelligence", "ChatGPT"],
         max_count=15,
     )
 
