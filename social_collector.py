@@ -175,10 +175,13 @@ def collect_social(max_count=30):
         queries=["artificial intelligence", "machine learning", "ChatGPT"],
         max_count=15,
     )
-    x_articles = collect_x(
-        queries=["artificial intelligence", "ChatGPT"],
-        max_count=15,
-    )
+    # X 수집 비활성화 (Windows Bird search 인코딩 이슈 + ScrapeCreators 빈 결과)
+    # TODO: Linux 환경 또는 ScrapeCreators 복구 후 재활성화
+    x_articles = []
+    # x_articles = collect_x(
+    #     queries=["artificial intelligence", "ChatGPT"],
+    #     max_count=15,
+    # )
 
     combined = reddit_articles + x_articles
 
