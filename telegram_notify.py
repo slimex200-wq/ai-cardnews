@@ -19,13 +19,15 @@ def send_result(result):
     if not BOT_TOKEN or not CHAT_ID:
         return False
 
-    lines = ["[포스팅 완료]"]
+    lines = ["[AI Threads 포스팅 완료]"]
     if result.get("post_id"):
         lines.append(f"메인: {result['post_id']}")
+    if result.get("analysis_id"):
+        lines.append(f"분석: {result['analysis_id']}")
     if result.get("reply_id"):
         lines.append(f"첫 댓글: {result['reply_id']}")
-    if result.get("carousel_id"):
-        lines.append(f"캐러셀: {result['carousel_id']}")
+    if result.get("link_id"):
+        lines.append(f"링크: {result['link_id']}")
 
     return _send_message("\n".join(lines))
 
@@ -39,13 +41,14 @@ def _format_text_preview(content):
         f"기사: {article.get('original_title', '?')}",
         f"선택 이유: {article.get('reason', '')}",
         "",
-        "--- 메인 포스트 ---",
+        "--- 메인 ---",
         content.get("post_main", ""),
+        "",
+        "--- 분석 ---",
+        content.get("post_analysis", ""),
         "",
         "--- 첫 댓글 ---",
         content.get("post_reply", ""),
-        "",
-        f"태그: {content.get('topic_tag', '')}",
     ]
     return "\n".join(lines)
 
