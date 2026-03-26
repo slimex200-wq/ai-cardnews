@@ -389,6 +389,10 @@ def main():
     text_file.write_text(json.dumps(content, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\n  → 저장: {text_file}")
 
+    # 텔레그램 프리뷰 전송
+    from telegram_notify import send_preview
+    send_preview(content, mode="text")
+
     if args.dry_run:
         print("\n[dry-run] 포스팅 건너뜀")
         return
@@ -412,6 +416,10 @@ def main():
     if result["carousel_id"]:
         print(f"  ✓ 캐러셀 댓글: {result['carousel_id']}")
     print(f"{'='*50}")
+
+    # 텔레그램 포스팅 결과 전송
+    from telegram_notify import send_result
+    send_result(result)
 
 
 if __name__ == "__main__":

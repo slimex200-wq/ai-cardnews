@@ -108,6 +108,8 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python -c "
           import json, os, time
@@ -119,6 +121,7 @@ jobs:
               create_text_container, publish_container,
               CONTAINER_WAIT_DELAY, FIRST_REPLY_DELAY,
           )
+          from telegram_notify import send_preview, send_result
           from cardnews import _load_history
           from pathlib import Path
           from datetime import date
@@ -129,6 +132,7 @@ jobs:
 
           content = generate_text_post(filtered, used_titles=used_titles)
           print(f'선택: {content[\"selected_article\"][\"original_title\"]}')
+          send_preview(content, mode='text')
 
           access_token = os.environ['THREADS_ACCESS_TOKEN']
           user_id = os.environ['THREADS_USER_ID']
@@ -148,6 +152,8 @@ jobs:
                   time.sleep(CONTAINER_WAIT_DELAY)
                   reply_id = publish_container(client, user_id, access_token, reply_cid)
                   print(f'첫 댓글: {reply_id}')
+
+          send_result({'post_id': post_id, 'reply_id': locals().get('reply_id')})
 
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f'post_id={post_id}\n')
