@@ -44,14 +44,13 @@ def collect_news(feeds=None, max_count=50, max_age_hours=MAX_AGE_HOURS):
             for entry in feed.entries[:15]:
                 pub_dt = _parse_published(entry)
 
-                # 날짜 파싱 실패 시 포함하되 정렬에서 후순위
-                if pub_dt:
-                    age_hours = (now - pub_dt).total_seconds() / 3600
-                    if age_hours > max_age_hours:
-                        continue
-                    pub_ts = pub_dt.timestamp()
-                else:
-                    pub_ts = 0
+                # 날짜 파싱 실패 시 제외 (오래된 기사 유입 방지)
+                if not pub_dt:
+                    continue
+                age_hours = (now - pub_dt).total_seconds() / 3600
+                if age_hours > max_age_hours:
+                    continue
+                pub_ts = pub_dt.timestamp()
 
                 article = {
                     "title": entry.get("title", ""),

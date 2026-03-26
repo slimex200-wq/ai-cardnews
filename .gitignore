@@ -1,5 +1,4 @@
 __pycache__/
-.pytest_cache/
 *.pyc
 .env
-design-preview-*/
+.last30days-skill/

@@ -1,30 +1,17 @@
 """텔레그램 프리뷰 알림 모듈."""
 
-import os
 import httpx
+from config import TELEGRAM_BOT_TOKEN as BOT_TOKEN, TELEGRAM_CHAT_ID as CHAT_ID
 
 TELEGRAM_API = "https://api.telegram.org"
-BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
 
-def send_preview(content, mode="text"):
-    """생성된 포스트 프리뷰를 텔레그램으로 전송.
-
-    Args:
-        content: generate_text_post() 또는 generate_card_content() 결과
-        mode: "text" (텍스트 포스트) 또는 "card" (카드뉴스)
-    """
+def send_preview(content):
+    """생성된 포스트 프리뷰를 텔레그램으로 전송."""
     if not BOT_TOKEN or not CHAT_ID:
         print("[텔레그램] BOT_TOKEN 또는 CHAT_ID 미설정, 알림 건너뜀")
         return False
-
-    if mode == "text":
-        message = _format_text_preview(content)
-    else:
-        message = _format_card_preview(content)
-
-    return _send_message(message)
+    return _send_message(_format_text_preview(content))
 
 
 def send_result(result):
@@ -47,7 +34,7 @@ def _format_text_preview(content):
     """텍스트 포스트 프리뷰 포맷."""
     article = content.get("selected_article", {})
     lines = [
-        "[AI CardNews 프리뷰]",
+        "[AI Threads 프리뷰]",
         "",
         f"기사: {article.get('original_title', '?')}",
         f"선택 이유: {article.get('reason', '')}",
@@ -60,25 +47,6 @@ def _format_text_preview(content):
         "",
         f"태그: {content.get('topic_tag', '')}",
     ]
-    return "\n".join(lines)
-
-
-def _format_card_preview(content):
-    """카드뉴스 프리뷰 포맷."""
-    cards = content.get("cards", [])
-    lines = [
-        "[AI CardNews 카드뉴스 프리뷰]",
-        "",
-        f"헤드라인: {content.get('cover_headline', '')}",
-        f"트렌드: {content.get('trend_summary', '')}",
-        f"카드 {len(cards)}장",
-        "",
-    ]
-    for i, card in enumerate(cards, 1):
-        lines.append(f"{i}. {card.get('title', '')} - {card.get('subtitle', '')}")
-    lines.append("")
-    lines.append("--- 캡션 ---")
-    lines.append(content.get("caption", ""))
     return "\n".join(lines)
 
 
