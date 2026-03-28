@@ -24,9 +24,12 @@ def fetch_thread_insights(access_token, thread_id):
                 print(f"  [인사이트] {thread_id} 조회 실패: {resp.status_code}")
                 return None
             data = resp.json()
+            # 자체 대댓글 5개(explain/important/action/counter/casual) + 링크 1개 제외
+            raw_replies = data.get("replies", 0)
+            organic_replies = max(0, raw_replies - 6)
             return {
                 "likes": data.get("likes", 0),
-                "replies": data.get("replies", 0),
+                "replies": organic_replies,
                 "views": data.get("views", 0),
             }
     except Exception as e:
