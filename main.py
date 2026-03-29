@@ -96,6 +96,9 @@ def main():
         print("[에러] 중복 제거 후 기사가 없습니다.")
         sys.exit(1)
 
+    # engagement 높은 순 정렬 (AI가 상위 기사에 집중)
+    filtered.sort(key=lambda a: a.get("engagement", 0), reverse=True)
+
     # 3. 포스트 생성
     print(f"\n[3/5] 바이럴 포스트 생성 중...")
     from ai_writer import generate_post

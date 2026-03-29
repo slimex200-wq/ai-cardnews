@@ -286,9 +286,9 @@ def collect_social(max_count=50):
                 print(f"  [{name}] 타임아웃/에러: {e}")
                 source_counts[name] = 0
 
-    # _score 제거
+    # _score → engagement으로 이름 변경 (AI 선별에 활용)
     for a in all_articles:
-        a.pop("_score", None)
+        a["engagement"] = a.pop("_score", 0)
 
     # 제목 중복 제거 (정규화 비교)
     from history import normalize_title
