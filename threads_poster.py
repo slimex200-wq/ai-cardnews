@@ -115,7 +115,7 @@ def post_thread(access_token, user_id, content, image_url=None, source_link=None
         # 이미지 + 링크 대댓글
         if image_url or source_link:
             time.sleep(REPLY_DELAY)
-            link_text = f"원문: {source_link}" if source_link else ""
+            link_text = source_link if source_link else ""
             try:
                 if image_url:
                     cid = _create_image(
