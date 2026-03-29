@@ -109,7 +109,11 @@ def main():
     print(f"  선택: {article.get('original_title', '?')}")
 
     # 4. og:image 추출
-    source_link = article.get("link", "")
+    from urllib.parse import quote, urlparse, urlunparse
+    raw_link = article.get("link", "")
+    # URL 공백 등 비정상 문자 인코딩
+    parsed = urlparse(raw_link)
+    source_link = urlunparse(parsed._replace(path=quote(parsed.path)))
     print(f"\n[4/5] 원문 이미지 추출 중...")
     og_image = fetch_og_image(source_link)
     if og_image:
