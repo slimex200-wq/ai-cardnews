@@ -85,9 +85,19 @@ def main():
     filtered = filter_by_keywords(articles, max_count=15) or articles[:15]
     print(f"  {len(filtered)}개 기사 통과")
 
+    # 2.5. 히스토리 기반 중복 제거 (AI 호출 전 프리필터)
+    from history import load_used_titles, save_title, filter_duplicates
+    before_dedup = len(filtered)
+    filtered = filter_duplicates(filtered)
+    if before_dedup != len(filtered):
+        print(f"  히스토리 중복 제거: {before_dedup} → {len(filtered)}개")
+
+    if not filtered:
+        print("[에러] 중복 제거 후 기사가 없습니다.")
+        sys.exit(1)
+
     # 3. 포스트 생성
     print(f"\n[3/5] 바이럴 포스트 생성 중...")
-    from history import load_used_titles, save_title
     from ai_writer import generate_post
 
     content = generate_post(filtered, used_titles=load_used_titles())
@@ -133,7 +143,7 @@ def main():
     print(f"  포스팅 완료!")
 
     if article.get("original_title"):
-        save_title(article["original_title"])
+        save_title(article["original_title"], url=article.get("link", ""))
 
     from telegram_notify import send_result
     send_result(result)

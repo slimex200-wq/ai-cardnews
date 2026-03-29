@@ -290,11 +290,12 @@ def collect_social(max_count=50):
     for a in all_articles:
         a.pop("_score", None)
 
-    # 제목 중복 제거
+    # 제목 중복 제거 (정규화 비교)
+    from history import normalize_title
     seen = set()
     unique = []
     for a in all_articles:
-        key = a["title"][:50].lower()
+        key = normalize_title(a["title"])
         if key not in seen:
             seen.add(key)
             unique.append(a)

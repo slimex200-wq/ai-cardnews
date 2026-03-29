@@ -68,12 +68,14 @@ def collect_news(feeds=None, max_count=50, max_age_hours=MAX_AGE_HOURS):
     # 최신순 정렬
     all_articles.sort(key=lambda a: a["_pub_ts"], reverse=True)
 
-    # 중복 제거 (제목 기준)
+    # 중복 제거 (정규화 제목 기준)
+    from history import normalize_title
     seen = set()
     unique = []
     for a in all_articles:
-        if a["title"] not in seen:
-            seen.add(a["title"])
+        key = normalize_title(a["title"])
+        if key not in seen:
+            seen.add(key)
             unique.append(a)
 
     # 내부 정렬 키 제거

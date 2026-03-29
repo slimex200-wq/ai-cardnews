@@ -123,7 +123,7 @@ def _format_articles(articles):
 def _build_history_instruction(used_titles):
     if not used_titles:
         return ""
-    titles_list = "\n".join(f"- {t}" for t in used_titles[:12])
+    titles_list = "\n".join(f"- {t}" for t in used_titles)
     return f"""
 ## 중복 방지 (필수)
 아래는 최근 며칠간 이미 다룬 기사 제목입니다. **같은 주제, 같은 사건, 같은 인물/회사에 대한 기사는 반드시 제외**해주세요.
