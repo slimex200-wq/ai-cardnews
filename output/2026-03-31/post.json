@@ -1,16 +1,16 @@
 {
   "selected_article": {
-    "original_title": "15% of Americans say they'd be willing to work for an AI boss",
-    "link": "https://techcrunch.com/2026/03/30/ai-boss-supervisor-us-quinnipiac-poll/",
-    "reason": "AI 상사 도입이라는 직장인의 직접적 위협과 찬반 논쟁이 격렬할 주제. 대중 인지도 높고 '내 직장도 그럴까?' 위기감 조성 가능"
+    "original_title": "15% of Americans say they'd be willing to work for an AI boss, according to new poll",
+    "link": "https://techcrunch.com/2026/03/30/ai-work-boss-supervisor-us-quinnipiac-poll/",
+    "reason": "직장인이라면 누구나 관심 가질 주제이고, AI 상사 밑에서 일하는 것에 대한 찬반 논쟁이 확실히 벌어질 수 있는 소재. 15%라는 구체적 수치도 충격적"
   },
-  "post_main": "미국 직장인 85%가 \"AI 상사 밑에서 일하기 싫다\"고 답했다는 설문 결과가 나왔네 🤔\n\n기업들이 중간 관리자를 AI로 바꾸는 '대평평화(Great Flattening)'를 진행 중이라는데... 솔직히 AI가 성과 평가하고 승진 결정하면 더 공정할 수도 있잖아? 감정으로 판단 안 하고 데이터로만 보니까.\n\n근데 반대로 생각해보면 인간적인 배려나 상황 이해는 기대할 수 없겠지. 여러분은 AI 상사 밑에서 일할 수 있어?",
-  "reply_explain": "쉽게 말하면 회사에서 팀장, 부장 자리를 AI가 대신한다는 얘기임. 업무 배정, 평가, 피드백을 모두 AI 시스템이 담당하는 거지.",
-  "reply_important": "이게 왜 중요하냐면 중간 관리직이 대거 사라질 수 있다는 신호거든. 승진 사다리 자체가 바뀌면 직장생활 판도가 완전히 달라지는 거야.",
-  "reply_action": "지금 당장은 AI 도구 활용 능력을 키우고, 데이터 기반으로 성과를 어필하는 방법을 연습해야 할 듯. AI 상사는 숫자로 말하니까.",
-  "reply_counter": "근데 반대로 보면 AI 상사가 더 객관적일 수도 있어. 성별, 나이, 인맥 차별 없이 순수 실력으로만 평가받을 수 있잖아?",
-  "reply_casual": "개인적으로는... 월요일마다 \"힘내세요!\" 하는 AI 상사 상상하니까 좀 웃기긴 하네 ㅋㅋ",
+  "post_main": "미국인 15%가 AI 상사 밑에서 일할 의향 있다고 답했다는 퀴니피악 대학 설문조사 결과가 나왔네 🤔\n\nAI가 업무 배정하고 일정 짜주는 거라면... 솔직히 인간 상사보다 나을 수도 있겠다는 생각이 들긴 함ㅋㅋ 감정적으로 화내지도 않고, 편애하지도 않고, 24시간 질문 받아주고\n\n근데 반대로 생각해보면 AI한테 평가받고 지시받는다는 게 좀 서글프긴 하네\n\n여러분은 AI 상사 어때요? 인간 상사보다 낫다고 생각해?",
+  "reply_explain": "쉽게 말하면 AI 프로그램이 직속 상사가 되어서 업무 지시하고 스케줄 관리하는 걸 받아들일 수 있냐는 질문인데, 생각보다 많은 사람들이 긍정적으로 봤다는 얘기",
+  "reply_important": "이게 왜 중요하냐면 이미 일부 기업들이 AI 매니저 시스템 도입을 검토하고 있거든. 인건비 절약하면서 24시간 관리가 가능하니까 경영진 입장에선 매력적이지",
+  "reply_action": "지금 당장 본인 회사에서 중간관리자들 역할을 AI가 대체할 수 있는 부분이 뭔지 한번 생각해보세요. 미리 대비하는 게 중요할듯",
+  "reply_counter": "근데 반대로 보면 AI 상사는 인간적인 배려나 창의적 판단이 어렵잖아. 특히 예외상황이나 팀원들 개인사정 같은 건 어떻게 처리할지 의문",
+  "reply_casual": "개인적으론 월급 올려달라고 졸라댈 수 있는 인간 상사가 그래도 낫지 않나ㅋㅋ",
   "topic_tag": "ai.threads",
   "og_image": "https://techcrunch.com/wp-content/uploads/2026/02/id-work.jpg?resize=1200,828",
-  "source_link": "https://techcrunch.com/2026/03/30/ai-boss-supervisor-us-quinnipiac-poll/"
+  "source_link": "https://techcrunch.com/2026/03/30/ai-work-boss-supervisor-us-quinnipiac-poll/"
 }
