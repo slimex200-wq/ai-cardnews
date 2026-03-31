@@ -1,16 +1,16 @@
 {
   "selected_article": {
-    "original_title": "위성 데이터센터 스타클라우드, 1.6조 기업 가치 달성",
-    "link": "https://www.aitimes.com/news/articleView.html?idxno=208643",
-    "reason": "8만8천개 위성으로 우주 데이터센터 구축한다는 충격적 규모와 1.6조 기업가치로 일반인도 쉽게 관심 가질 만한 미래적 이야기. AI가 지구를 벗어나 우주로 간다는 점에서 SF적 상상력 자극하며 찬반 논쟁 유발 가능"
+    "original_title": "Yupp shuts down after raising $33M from a16z crypto's Chris Dixon",
+    "link": "https://techcrunch.com/2026/03/31/yupp-ai-shuts-down-33m-a16z-crypto-chris-dixon/",
+    "reason": "유명 투자사 a16z에서 3300만 달러(약 440억원)를 받고도 1년도 안 돼서 문 닫은 AI 스타트업 사례로, 투자자들과 AI 창업 준비자들에게 충격적이고 논쟁적인 내용"
   },
-  "post_main": "AI 데이터센터가 이제 우주로 간다 🚀\n\n스타클라우드라는 회사가 8만8천개 위성으로 '우주 데이터센터'를 만든다고 발표했는데, 벌써 기업가치 1조6천억 찍었음. 지구 궤도에서 AI 모델 학습시키겠다는 거야.\n\n솔직히 이거 개념적으론 미친 아이디어긴 한데... 우주에서 AI 돌리면 전력비는 어떻게 하고, 인터넷은 어떻게 연결하지? ㅋㅋ 그리고 위성 8만개면 우주 쓰레기 문제도 심각할 것 같은데.\n\n이런 식으로 AI 인프라가 진화하는 거 어떻게 생각해?",
-  "reply_explain": "쉽게 말하면 구글이나 네이버 데이터센터를 지구가 아니라 우주에 띄워서 AI를 돌리겠다는 얘기임. 위성 8만8천개로 거대한 컴퓨터 네트워크 만드는 거지.",
-  "reply_important": "이게 왜 중요하냐면 지구상 데이터센터는 전력 부족과 부지 확보가 한계인데, 우주에서는 태양광 무제한이고 공간도 무한함. 성공하면 AI 처리 속도가 혁신적으로 빨라질 수도 있어.",
-  "reply_action": "지금 당장은 구경만 하되, 우주 관련주나 위성 기술 회사들 주목해볼 만함. 스페이스X 같은 발사체 회사들한테도 호재일 듯. 위성 인터넷 서비스도 덩달아 발전할 거야.",
-  "reply_counter": "근데 반대로 보면 위성 8만개가 고장나거나 충돌하면? 우주 쓰레기 되고 지구 통신도 마비될 수 있음. 그리고 해킹당하면 진짜 답 없을듯 ㄹ;",
-  "reply_casual": "ㄹㅇ 이러다 10년 뒤엔 \"AI 서버 터졌는데 우주 가서 고쳐야 함\" 이런 일 생기는 거 아님? ㅋㅋㅋ",
+  "post_main": "a16z에서 440억원 투자받은 AI 스타트업이 1년도 안 돼서 문 닫았다 🤔\n\nYupp이라는 회사인데, 크리스 딕슨 같은 실리콘밸리 유명 투자자들이 줄줄이 돈 넣었는데 갑자기 사업 중단 발표했음. AI 모델 피드백 수집이 아이템이었는데...\n\n솔직히 이 정도 투자받고도 망한다면 AI 창업이 생각보다 훨씬 어려운 거 아닌가? 아니면 투자자들이 너무 성급하게 돈을 뿌린 건가?",
+  "reply_explain": "쉽게 말하면 AI 스타트업들이 사용자 피드백으로 모델을 개선하는 서비스를 만들었는데, 시장에서 먹히지 않아서 빠르게 접은 거임",
+  "reply_important": "이게 왜 중요하냐면 요즘 AI 버블 얘기가 많은데, 실제로 돈 많이 받은 회사들도 이렇게 순식간에 무너질 수 있다는 걸 보여주는 사례거든",
+  "reply_action": "AI 창업 준비 중이라면 지금 당장 차별화 포인트를 다시 점검해봐야 함. 단순 아이디어만으론 투자받아도 버티기 어렵다는게 증명됨",
+  "reply_counter": "근데 반대로 보면 투자자들이 AI 분야에선 빠른 손절도 마다하지 않는다는 뜻일 수도 있어. 더 좋은 기회에 집중하려는 거일지도?",
+  "reply_casual": "ㄹㅇ 440억 받고 1년만에 망하는 것도 실력이긴 하다...",
   "topic_tag": "ai.threads",
-  "og_image": "https://cdn.aitimes.com/news/photo/202603/208643_210950_3852.png",
-  "source_link": "https://www.aitimes.com/news/articleView.html?idxno=208643"
+  "og_image": "https://techcrunch.com/wp-content/uploads/2023/10/GettyImages-1303642234.jpg?w=1024",
+  "source_link": "https://techcrunch.com/2026/03/31/yupp-ai-shuts-down-33m-a16z-crypto-chris-dixon/"
 }
