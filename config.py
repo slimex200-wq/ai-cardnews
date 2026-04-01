@@ -29,6 +29,10 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 ENGAGEMENT_WEIGHTS = {"views": 0.1, "likes": 5, "replies": 10, "reposts": 8, "quotes": 8}
 ENGAGEMENT_DAYS = 7  # collect insights for posts within this many days
 
+# Smart scheduler
+MAX_DAILY_POSTS = 4
+FORCE_POST_HOUR = 22  # KST hour — force at least 1 post if 0 today
+
 # AI 키워드 필터링
 AI_KEYWORDS = [
     "ai", "artificial intelligence", "machine learning", "deep learning",

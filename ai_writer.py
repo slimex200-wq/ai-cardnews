@@ -185,6 +185,41 @@ def _parse_response(text):
     return json.loads(text)
 
 
+def evaluate_worthiness(articles):
+    """Evaluate whether articles are worth posting. Returns (bool, reason)."""
+    if not articles:
+        return False, "기사가 없음"
+
+    articles_text = _format_articles(articles[:10])
+    prompt = f"""아래 기사들을 보고 Threads에 바이럴 포스트로 올릴 만한 기사가 있는지 판단해.
+
+판단 기준:
+1. 대중 인지도 — 비개발자도 관심 가질 만한 브랜드/인물인가?
+2. 위협 근접성 — 읽는 사람이 "나도 해당되네"라고 느낄까?
+3. 논쟁성 — 찬반이 갈리는가?
+4. 신선도 — 이미 다 아는 뉴스가 아닌가?
+
+반드시 피할 기사: 단순 업데이트, 파트너십 발표, 순수 학술 연구
+
+JSON으로만 응답:
+{{"worthy": true/false, "reason": "판단 이유 한 줄"}}
+
+{articles_text}"""
+
+    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    message = client.messages.create(
+        model=MODEL,
+        max_tokens=200,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    try:
+        result = _parse_response(message.content[0].text)
+        return result.get("worthy", True), result.get("reason", "")
+    except Exception:
+        # Parsing failed — default to posting
+        return True, "가치 판단 파싱 실패, 기본 포스팅 진행"
+
+
 def generate_post(articles, used_titles=None, engagement_patterns=None):
     """Threads 텍스트 포스트 생성."""
     prompt = build_prompt(articles, used_titles, engagement_patterns)
