@@ -1,6 +1,6 @@
-"""Threads 바이럴 텍스트 포스트 생성 모듈.
+"""Threads 바이럴/정보성 텍스트 포스트 생성 모듈.
 
-8개 소스에서 수집한 기사 중 가장 바이럴 가능성 높은 1개를 골라
+8개 소스에서 수집한 기사 중 가장 적합한 1개를 골라
 Threads 텍스트 포스트 + 첫 댓글을 생성.
 """
 
@@ -11,7 +11,14 @@ import anthropic
 from config import ANTHROPIC_API_KEY, MODEL
 
 
-def build_prompt(articles, used_titles=None, engagement_patterns=None):
+def build_prompt(articles, used_titles=None, engagement_patterns=None, mode="informational"):
+    """Threads 포스트 프롬프트. mode='viral' 또는 'informational'."""
+    if mode == "viral":
+        return _build_viral_prompt(articles, used_titles, engagement_patterns)
+    return _build_informational_prompt(articles, used_titles, engagement_patterns)
+
+
+def _build_viral_prompt(articles, used_titles=None, engagement_patterns=None):
     """Threads 바이럴 텍스트 포스트 프롬프트."""
     articles_text = _format_articles(articles)
     history_instruction = _build_history_instruction(used_titles)
@@ -104,6 +111,120 @@ JSON으로 응답. 다른 텍스트 없이 JSON만 출력.
   "reply_action": "그래서 뭘 해야 하냐면... (80~150자)",
   "reply_counter": "근데 반대 의견도 있음... (80~150자)",
   "reply_casual": "가벼운 한마디 (50~100자)",
+  "topic_tag": "ai.threads"
+}}
+
+# 기사들
+{articles_text}"""
+
+
+def _build_informational_prompt(articles, used_titles=None, engagement_patterns=None):
+    """바이브코더 대상 정보성 포스트 프롬프트."""
+    articles_text = _format_articles(articles)
+    history_instruction = _build_history_instruction(used_titles)
+    engagement_instruction = _build_engagement_instruction(engagement_patterns)
+    performance_instruction = _build_performance_instruction()
+
+    return f"""{history_instruction}{engagement_instruction}
+{performance_instruction}
+# ROLE
+바이브코더 대상 AI 뉴스를 정리해주는 사람. "뉴스 기자"와 "개발 선배" 사이 포지셔닝.
+- 구어체 유지하되 슬랭("ㅋㅋ", "ㄹㅇ") 최소화
+- 3문장 연속 같은 종결어미 금지
+- 종결 패턴 로테이션: ~다(팩트) / ~거든(설명) / 명사종결(리듬) / ~인 셈이다(정리) / 질문형(참여)
+- 문장 리듬: 짧은 팩트(3-5단어) → 맥락 설명 → 풀어주는 문장 → 다시 짧게
+- 강한 의견 > 애매한 중립
+- 구체적 숫자 > 모호한 형용사
+
+# TASK
+아래 기사 중 **바이브코더에게 가장 실용적인 1개**를 골라 정보성 포스트를 작성하라.
+핵심 KPI: 읽는 사람이 "이거 나한테도 해당되네"라고 느끼는 것. 정보 전달 + 실용적 인사이트가 목적.
+
+## 기사 선별 필수 테스트 (2개 모두 통과해야 선택 가능)
+1. **실용성 테스트** — "바이브코더가 이걸 알면 뭔가 달라지나?" No면 탈락.
+   - O: 새 AI 코딩 도구 출시, API 변경, 가격 변동, 성능 벤치마크
+   - X: 순수 비즈니스 뉴스, 투자/인수, 정치적 규제
+2. **대중성 테스트** — "코딩 입문자도 관심 가질 만한가?" No면 후순위.
+   - O: ChatGPT, Claude, Cursor, GitHub Copilot 관련
+   - X: 특정 프레임워크 내부 구현, 학술 논문
+
+## 기사 선별 기준 (우선순위, 위 테스트 통과 전제)
+1. AI 코딩 도구 변화 (출시/업데이트/가격)
+2. 바이브코딩 워크플로우에 영향 주는 뉴스
+3. AI 시장 변화 중 개발자에게 직접 영향 있는 것
+4. 충격적 숫자/트렌드
+
+Engagement 점수 높은 기사 = 이미 사람들이 반응 중 = 우선 고려.
+
+## 반드시 피할 기사
+- 순수 비즈니스 뉴스 (투자, 인수, 파트너십)
+- 정치/규제 뉴스 (바이브코더 행동에 영향 없는 것)
+- 며칠 된 뉴스의 후속 보도
+- 순수 학술/연구 뉴스. 단, "이 기술이 나오면 바이브코딩이 바뀐다"가 명확한 기술 뉴스는 OK.
+
+## 포스트 작성 규칙
+
+### post_main (200~400자)
+1. **Hook (첫 1~2문장)** — 구체적 숫자, 반상식, 비하인드, 시간 투자 중 택1.
+   - O: "Google이 Gemini CLI를 오픈소스로 풀었다. 무료."
+   - O: "바이브코딩이 개발자를 대체한다? 정반대다."
+   - X: "오늘은 X에 대해 이야기해보겠습니다." (약한 시작)
+2. **본문 (2~4줄)** — 핵심 팩트 + "바이브코더에게 왜 중요한지" (So What). 수치 포함.
+3. **마무리** — 강한 의견 또는 질문. 어느 쪽이든 OK.
+
+### reply_background (100~200자)
+이 뉴스가 나온 맥락/배경. "이게 갑자기 나온 게 아니거든", "나온 이유가 있는데" 등.
+
+### reply_impact (100~200자)
+바이브코더에게 구체적 영향. "달라지는 건 하나", "입장에서 보면" 등. 막연한 일반론 금지.
+
+### reply_compare (100~200자)
+기존 도구/방식과 비교. 객관적 분석. "A는 ~형, B는 ~형, C는 ~인데" 등.
+
+### reply_summary (80~150자)
+핵심 한줄 정리 + 본인 의견. "정리하면", "결론은" 등.
+
+## 톤 레퍼런스 (이 수준을 목표로)
+```
+[메인]
+Google이 Gemini CLI를 오픈소스로 풀었다. 무료.
+
+터미널에서 Gemini 2.5 Pro를 바로 쓸 수 있는 도구인데, Claude Code가 개발자 시장을 먹기 시작하니까 Google이 무료 카드를 꺼낸 거다. 바이브코딩 입문하려는데 월 구독료가 걸렸던 사람들한테는 진입장벽이 사라진 셈.
+
+유료 도구 없이도 AI 코딩을 시작할 수 있는 시대가 된 건데, 문제는 뭘 골라야 하느냐는 거다.
+
+[reply_background]
+이게 갑자기 나온 게 아니거든. MS는 Copilot, Anthropic은 Claude Code, Cursor는 독자 노선 — 근데 Google만 CLI 도구가 없었다. 오픈소스로 낸 건 "일단 써보게 하자"는 생태계 선점 전략.
+
+[reply_impact]
+바이브코더 입장에서 달라지는 건 하나. 선택지가 늘었다는 거다. 프로젝트 초기 세팅이나 간단한 자동화 스크립트 정도는 무료 티어로 충분히 되니까, 유료 도구는 진짜 복잡한 작업에만 쓰면 된다.
+
+[reply_compare]
+Claude Code는 에이전트형. 파일 읽고 수정까지 알아서 해준다. Cursor는 에디터 통합형. 코드 쓰면서 실시간 보조를 받는 방식이고. Gemini CLI는 그 중간인데, 1M 컨텍스트가 강점이라 큰 코드베이스를 한번에 넘길 때 유리할 수 있다. 만능은 없고 용도가 다른 거다.
+
+[reply_summary]
+도구 경쟁이 붙으면 결국 사용자가 이득. 하나에 올인하기보다 용도별로 써보고 자기한테 맞는 조합을 찾는 게 맞는 방향이라고 본다.
+```
+
+## 금지 패턴
+- 해시태그(#), 외부 링크, "카드뉴스", "자세한 내용은", "정리했습니다"
+- topic_tag는 항상 "ai.threads" 고정. 변경 금지.
+- 클릭베이트 ("인생이 바뀝니다", "비밀 공개", "충격")
+- 의견 없는 뉴스 나열, 보도자료 톤 ("~라고 밝혔다", "~를 발표했다"로 끝나는 문장)
+
+# FORMAT
+JSON으로 응답. 다른 텍스트 없이 JSON만 출력.
+{{
+  "selected_article": {{
+    "original_title": "선택한 기사의 Title 필드 그대로 복사",
+    "link": "선택한 기사의 Link 필드 그대로 복사",
+    "reason": "이 기사를 선택한 이유 (실용성 중심)"
+  }},
+  "post_main": "메인 포스트 (200~400자)",
+  "reply_background": "배경/맥락 (100~200자)",
+  "reply_impact": "바이브코더 영향 (100~200자)",
+  "reply_compare": "비교/분석 (100~200자)",
+  "reply_summary": "핵심 정리 + 의견 (80~150자)",
   "topic_tag": "ai.threads"
 }}
 
@@ -226,13 +347,15 @@ def _parse_response(text):
     return json.loads(text)
 
 
-def evaluate_worthiness(articles):
+def evaluate_worthiness(articles, mode="informational"):
     """Evaluate whether articles are worth posting. Returns (bool, reason)."""
     if not articles:
         return False, "기사가 없음"
 
     articles_text = _format_articles(articles[:10])
-    prompt = f"""아래 기사들을 보고 Threads에 바이럴 포스트로 올릴 만한 기사가 있는지 판단해.
+
+    if mode == "viral":
+        prompt = f"""아래 기사들을 보고 Threads에 바이럴 포스트로 올릴 만한 기사가 있는지 판단해.
 
 판단 기준:
 1. 대중 인지도 — 비개발자도 관심 가질 만한 브랜드/인물인가?
@@ -241,6 +364,20 @@ def evaluate_worthiness(articles):
 4. 신선도 — 이미 다 아는 뉴스가 아닌가?
 
 반드시 피할 기사: 단순 업데이트, 파트너십 발표, 순수 학술 연구
+
+JSON으로만 응답:
+{{"worthy": true/false, "reason": "판단 이유 한 줄"}}
+
+{articles_text}"""
+    else:
+        prompt = f"""아래 기사들을 보고 바이브코더에게 실용적인 기사가 있는지 판단해.
+
+판단 기준:
+1. 실용성 — AI 코딩 도구, API, 가격, 워크플로우 변화가 있는가?
+2. 대중성 — 코딩 입문자도 관심 가질 만한가?
+3. 신선도 — 이미 다 아는 뉴스가 아닌가?
+
+피할 기사: 순수 비즈니스 뉴스, 정치/규제, 학술 논문
 
 JSON으로만 응답:
 {{"worthy": true/false, "reason": "판단 이유 한 줄"}}
@@ -261,7 +398,8 @@ JSON으로만 응답:
         return True, "가치 판단 파싱 실패, 기본 포스팅 진행"
 
 
-def generate_post(articles, used_titles=None, engagement_patterns=None, qa_feedback=None):
+def generate_post(articles, used_titles=None, engagement_patterns=None,
+                  qa_feedback=None, mode="informational"):
     """Threads 텍스트 포스트 생성.
 
     Args:
@@ -269,8 +407,9 @@ def generate_post(articles, used_titles=None, engagement_patterns=None, qa_feedb
         used_titles: 최근 사용한 기사 제목 (중복 방지)
         engagement_patterns: engagement 분석 패턴 (자가학습)
         qa_feedback: QA 실패 시 피드백 dict (issues, suggestions, previous_post)
+        mode: "viral" 또는 "informational"
     """
-    prompt = build_prompt(articles, used_titles, engagement_patterns)
+    prompt = build_prompt(articles, used_titles, engagement_patterns, mode)
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     messages = [{"role": "user", "content": prompt}]
