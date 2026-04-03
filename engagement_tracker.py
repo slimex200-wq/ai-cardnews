@@ -104,6 +104,7 @@ def collect_all_engagement(access_token=None):
         selected = post_data.get("selected_article", {})
         entries.append({
             "date": day_dir.name,
+            "mode": post_data.get("mode", "viral"),  # 기존 포스트는 viral 기본
             "title": selected.get("original_title", ""),
             "post_main": post_data.get("post_main", "")[:100],
             "reply_casual": post_data.get("reply_casual", "")[:80],
@@ -140,8 +141,13 @@ def save_engagement_history(new_entries):
     )
 
 
-def analyze_patterns(history=None, top_n=3):
+def analyze_patterns(history=None, top_n=3, mode=None):
     """Analyze top/bottom performing posts and return patterns dict.
+
+    Args:
+        history: List of engagement entries. Loads from file if None.
+        top_n: Number of top/bottom entries to return.
+        mode: If specified, filter to only entries with matching mode.
 
     Returns:
         {"top": [...], "bottom": [...], "avg": {...}} or None if insufficient data
@@ -150,6 +156,11 @@ def analyze_patterns(history=None, top_n=3):
         history = load_engagement_history()
 
     scored = [e for e in history if "score" in e]
+
+    # mode가 지정되면 같은 모드만 필터
+    if mode is not None:
+        scored = [e for e in scored if e.get("mode") == mode]
+
     if len(scored) < 3:
         return None
 
