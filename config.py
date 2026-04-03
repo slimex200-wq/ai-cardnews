@@ -43,3 +43,11 @@ AI_KEYWORDS = [
     "인공지능", "머신러닝", "딥러닝", "생성형", "대규모 언어 모델",
     "챗봇", "자연어 처리", "컴퓨터 비전", "강화학습",
 ]
+
+# Content mode
+CONTENT_MODE = os.environ.get("CONTENT_MODE", "informational")  # "viral" or "informational"
+
+# API timing guardrails
+PIPELINE_TIMEOUT = 300    # 전체 파이프라인 5분 제한
+API_MAX_RETRIES = 3       # API 호출당 최대 재시도
+API_RETRY_DELAY = 5       # 재시도 간격 (초)
