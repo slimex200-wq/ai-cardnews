@@ -465,7 +465,8 @@ def _build_qa_feedback(qa_feedback):
     score = qa_feedback.get("score", 0)
     lines.append(f"\n## 점수: {score:.2f} / 1.00 (0.65 이상 필요)")
     lines.append("\n같은 기사를 선택해도 좋지만, 글의 톤/구조/표현을 개선하라.")
-    lines.append("다른 기사가 더 바이럴 가능성이 높다면 기사 변경도 가능하다.")
+    lines.append("다른 기사가 더 적합하다면 기사 변경도 가능하다.")
+    lines.append('반드시 "topic_tag": "ai.threads"를 포함하라. 모든 필드를 빠짐없이 채워라.')
     lines.append("JSON으로만 응답하라.")
 
     return "\n".join(lines)
