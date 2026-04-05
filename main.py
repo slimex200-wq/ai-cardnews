@@ -169,8 +169,20 @@ def _download_and_upload_video(youtube_url: str) -> str | None:
         return None
 
 
+def _extract_product_name(title: str) -> str:
+    """기사 제목에서 영문 제품/서비스명 추출. 없으면 원문 반환."""
+    # 영문 단어 2개 이상 연속 (제품명 패턴: "GPT-4o", "Gemini CLI", "Claude Code")
+    matches = re.findall(r'[A-Za-z][\w.-]*(?:\s+[A-Za-z][\w.-]*)*', title)
+    # 가장 긴 영문 구절 선택 (제품명이 보통 가장 김)
+    if matches:
+        best = max(matches, key=len)
+        if len(best) >= 3:  # 최소 3글자
+            return best
+    return title
+
+
 def search_promo_video(article_title: str) -> str | None:
-    """기사 제목으로 YouTube에서 공식 홍보/데모 영상 검색.
+    """기사 제목에서 제품명을 추출하여 YouTube에서 공식 프로모 영상 검색.
 
     60초 이하 짧은 영상만 대상. 없으면 None 반환.
     """
@@ -179,10 +191,14 @@ def search_promo_video(article_title: str) -> str | None:
     if not article_title:
         return None
 
+    product = _extract_product_name(article_title)
+    query = f"{product} official"
+    print(f"  프로모 검색: {query}")
+
     try:
         # YouTube 검색 → 상위 5개 메타데이터 조회
         result = subprocess.run(
-            ["yt-dlp", f"ytsearch5:{article_title} official",
+            ["yt-dlp", f"ytsearch5:{query}",
              "-j", "--no-download", "--no-warnings"],
             capture_output=True, text=True, timeout=30,
         )
