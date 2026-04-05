@@ -105,6 +105,52 @@ def _get_youtube_direct_url(youtube_url):
         return None
 
 
+def search_promo_video(article_title: str) -> str | None:
+    """기사 제목으로 YouTube에서 공식 홍보/데모 영상 검색.
+
+    60초 이하 짧은 영상만 대상. 없으면 None 반환.
+    """
+    import subprocess
+
+    if not article_title:
+        return None
+
+    try:
+        # YouTube 검색 → 상위 5개 메타데이터 조회
+        result = subprocess.run(
+            ["yt-dlp", f"ytsearch5:{article_title} official",
+             "-j", "--no-download", "--no-warnings"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            return None
+
+        # 60초 이하 영상 중 가장 짧은 것 선택 (프로모 영상은 보통 짧음)
+        candidates = []
+        for line in result.stdout.strip().split("\n"):
+            try:
+                info = json.loads(line)
+                duration = info.get("duration") or 999
+                vid = info.get("id", "")
+                if duration <= 60 and vid:
+                    candidates.append((duration, vid, info.get("title", "")))
+            except (json.JSONDecodeError, ValueError):
+                continue
+
+        if not candidates:
+            return None
+
+        # 가장 짧은 영상 선택
+        candidates.sort(key=lambda x: x[0])
+        _, best_id, best_title = candidates[0]
+        print(f"  프로모 영상 발견: {best_title[:60]}... ({candidates[0][0]}초)")
+        return _get_youtube_direct_url(f"https://www.youtube.com/watch?v={best_id}")
+
+    except Exception as e:
+        print(f"  프로모 영상 검색 실패: {e}")
+        return None
+
+
 def fetch_og_image(url):
     """URL에서 og:image 메타태그 추출."""
     if not url:
@@ -306,10 +352,16 @@ def main():
     print(f"\n[5/7] 원문 미디어 추출 중...")
     video_url = fetch_og_video(source_link)
     if video_url:
-        print(f"  영상 발견: {video_url[:80]}...")
+        print(f"  원문 영상 발견: {video_url[:80]}...")
     og_image = fetch_og_image(source_link)
     if og_image:
         print(f"  og:image 확인: {og_image[:80]}...")
+
+    # og:video 없으면 YouTube에서 공식 프로모 영상 검색
+    if not video_url:
+        article_title = article.get("original_title", "")
+        video_url = search_promo_video(article_title)
+
     if not video_url and not og_image:
         print(f"  미디어 없음")
 
