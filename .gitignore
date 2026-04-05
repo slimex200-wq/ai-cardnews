@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 .env
 .last30days-skill/
+docs/
+output/compare/
